@@ -1,0 +1,8 @@
+#!/bin/sh
+# Stop the daemon gracefully before uninstall.
+PIDFILE=/var/run/cardimportd.pid
+if [ -f "$PIDFILE" ] && kill -0 "$(cat $PIDFILE)" 2>/dev/null; then
+    kill "$(cat $PIDFILE)"
+    rm -f "$PIDFILE"
+fi
+exit 0

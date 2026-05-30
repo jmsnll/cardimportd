@@ -30,3 +30,9 @@ file_extensions:
   - .xmp
 
 log_path: /var/log/cardimportd.log
+
+# Optional: push notifications via Pushover (https://pushover.net)
+# notifications:
+#   pushover:
+#     app_token: "your-app-token"
+#     user_key: "your-user-key"

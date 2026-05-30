@@ -1,0 +1,9 @@
+package="cardimportd"
+version="1.0.0-0001"
+os_min_ver="7.0-40000"
+description="Watches for SD/CFExpress card insertions and imports photos/videos to per-owner directories."
+displayname="Card Importer"
+maintainer="jmsnll"
+arch="x86_64"
+# For ARM-based NAS (DS220j, DS418, etc.) change arch to "armv8"
+# Build both binaries with: make build-dsm-amd64 build-dsm-arm64

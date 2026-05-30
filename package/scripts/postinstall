@@ -1,0 +1,16 @@
+#!/bin/sh
+# Runs after the package is installed or upgraded.
+
+ETC=/var/packages/cardimportd/etc
+EXAMPLE=/var/packages/cardimportd/target/config.example.yaml
+
+mkdir -p "$ETC"
+
+# Seed a default config only on first install (don't clobber upgrades).
+if [ ! -f "$ETC/config.yaml" ]; then
+    cp "$EXAMPLE" "$ETC/config.yaml"
+    echo "Default config written to $ETC/config.yaml"
+    echo "Edit it to register your cards, then start the package."
+fi
+
+exit 0

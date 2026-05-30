@@ -30,6 +30,18 @@ type CardEntry struct {
 	FirstSeen *time.Time `yaml:"first_seen,omitempty"`
 }
 
+
+// PushoverConfig holds credentials for the Pushover push notification service.
+type PushoverConfig struct {
+	AppToken string `yaml:"app_token"`
+	UserKey  string `yaml:"user_key"`
+}
+
+// NotificationConfig groups optional push notification adapters.
+type NotificationConfig struct {
+	Pushover *PushoverConfig `yaml:"pushover,omitempty"`
+}
+
 // Config is the top-level configuration structure for cardimportd.
 type Config struct {
 	WatchPaths     []string             `yaml:"watch_paths"`
@@ -37,6 +49,7 @@ type Config struct {
 	Cards          map[string]CardEntry `yaml:"cards"`
 	FileExtensions []string             `yaml:"file_extensions"`
 	LogPath        string               `yaml:"log_path"`
+	Notifications  NotificationConfig   `yaml:"notifications,omitempty"`
 }
 
 // Load reads and parses the YAML config at path.

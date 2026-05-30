@@ -1,3 +1,5 @@
 cardimportd
 *.tmp
 config.yaml
+*.spk
+.claude/
