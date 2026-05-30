@@ -1,0 +1,124 @@
+// Package config loads and saves the cardimportd YAML configuration file.
+package config
+
+import (
+	"fmt"
+	"log/slog"
+	"os"
+	"path/filepath"
+	"time"
+
+	"gopkg.in/yaml.v3"
+)
+
+// CardStatus describes the operational state of a registered card.
+type CardStatus string
+
+const (
+	StatusActive  CardStatus = "active"
+	StatusPending CardStatus = "pending"
+)
+
+var defaultFileExtensions = []string{
+	".jpg", ".jpeg", ".raf", ".arw", ".mp4", ".mov", ".xmp",
+}
+
+// CardEntry holds the per-card configuration keyed by filesystem UUID.
+type CardEntry struct {
+	Owner     string     `yaml:"owner"`
+	Status    CardStatus `yaml:"status"`
+	FirstSeen *time.Time `yaml:"first_seen,omitempty"`
+}
+
+// Config is the top-level configuration structure for cardimportd.
+type Config struct {
+	WatchPaths     []string             `yaml:"watch_paths"`
+	ImportRoot     string               `yaml:"import_root"`
+	Cards          map[string]CardEntry `yaml:"cards"`
+	FileExtensions []string             `yaml:"file_extensions"`
+	LogPath        string               `yaml:"log_path"`
+}
+
+// Load reads and parses the YAML config at path.
+// Unknown YAML keys are rejected. FileExtensions defaults if empty.
+func Load(path string) (*Config, error) {
+	f, err := os.Open(path)
+	if err != nil {
+		return nil, fmt.Errorf("config: open %q: %w", path, err)
+	}
+	defer f.Close()
+
+	var cfg Config
+	dec := yaml.NewDecoder(f)
+	dec.KnownFields(true)
+	if err := dec.Decode(&cfg); err != nil {
+		return nil, fmt.Errorf("config: decode %q: %w", path, err)
+	}
+
+	if len(cfg.FileExtensions) == 0 {
+		cfg.FileExtensions = append([]string(nil), defaultFileExtensions...)
+		slog.Info("config: no file_extensions set, using defaults", "extensions", cfg.FileExtensions)
+	}
+	if cfg.Cards == nil {
+		cfg.Cards = make(map[string]CardEntry)
+	}
+	return &cfg, nil
+}
+
+// Save atomically writes cfg to path via a .tmp sibling + os.Rename.
+func (c *Config) Save(path string) error {
+	tmp := path + ".tmp"
+	dir := filepath.Dir(path)
+
+	f, err := os.OpenFile(tmp, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, 0o644)
+	if err != nil {
+		tf, tfErr := os.CreateTemp(dir, ".config-*.tmp")
+		if tfErr != nil {
+			return fmt.Errorf("config: create temp file in %q: %w", dir, tfErr)
+		}
+		tmp = tf.Name()
+		f = tf
+	}
+
+	enc := yaml.NewEncoder(f)
+	enc.SetIndent(2)
+	encErr := enc.Encode(c)
+	closeEncErr := enc.Close()
+	closeFileErr := f.Close()
+
+	for _, e := range []error{encErr, closeEncErr, closeFileErr} {
+		if e != nil {
+			_ = os.Remove(tmp)
+			return fmt.Errorf("config: write temp file %q: %w", tmp, e)
+		}
+	}
+
+	if err := os.Rename(tmp, path); err != nil {
+		_ = os.Remove(tmp)
+		return fmt.Errorf("config: rename %q to %q: %w", tmp, path, err)
+	}
+
+	slog.Debug("config: saved", "path", path)
+	return nil
+}
+
+// RegisterPending adds a StatusPending entry for uuid if not already present.
+// Returns true if a new entry was inserted (caller should then Save).
+func (c *Config) RegisterPending(uuid string) bool {
+	if _, exists := c.Cards[uuid]; exists {
+		return false
+	}
+	if c.Cards == nil {
+		c.Cards = make(map[string]CardEntry)
+	}
+	now := time.Now().UTC()
+	c.Cards[uuid] = CardEntry{Status: StatusPending, FirstSeen: &now}
+	slog.Info("config: registered new pending card", "uuid", uuid)
+	return true
+}
+
+// LookupCard returns the CardEntry for uuid and whether it was found.
+func (c *Config) LookupCard(uuid string) (CardEntry, bool) {
+	entry, ok := c.Cards[uuid]
+	return entry, ok
+}

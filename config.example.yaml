@@ -1,0 +1,32 @@
+watch_paths:
+  - /volumeUSB1/usbshare
+  - /volumeUSB2/usbshare
+
+import_root: /volume1/photos
+
+# Cards are keyed by filesystem UUID (blkid -s UUID -o value /dev/sdX).
+# status: active   -> import runs automatically on insertion
+# status: pending  -> card was seen but not yet configured; edit owner + set active
+cards:
+  "1A2B-3C4D":
+    owner: "James"
+    status: active
+  "5E6F-7A8B":
+    owner: "Sophie"
+    status: active
+  # Example pending entry written automatically on first insertion:
+  # "XXXX-YYYY":
+  #   owner: ""
+  #   status: pending
+  #   first_seen: "2026-05-30T10:00:00Z"
+
+file_extensions:
+  - .jpg
+  - .jpeg
+  - .raf
+  - .arw
+  - .mp4
+  - .mov
+  - .xmp
+
+log_path: /var/log/cardimportd.log
