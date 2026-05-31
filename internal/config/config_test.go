@@ -225,6 +225,35 @@ log_path: /v
 	}
 }
 
+func TestWriteManifestRoundTrip(t *testing.T) {
+	const manifestYAML = `watch_paths:
+  - /volumeUSB1/usbshare
+import_root: /volume1/photos
+log_path: /var/log/cardimportd.log
+write_manifest: true
+`
+	src := writeTempYAML(t, manifestYAML)
+	cfg, err := config.Load(src)
+	if err != nil {
+		t.Fatalf("Load: %v", err)
+	}
+	if !cfg.WriteManifest {
+		t.Fatal("WriteManifest = false, want true after Load")
+	}
+
+	dst := filepath.Join(t.TempDir(), "config-out.yaml")
+	if err := cfg.Save(dst); err != nil {
+		t.Fatalf("Save: %v", err)
+	}
+	cfg2, err := config.Load(dst)
+	if err != nil {
+		t.Fatalf("Load after Save: %v", err)
+	}
+	if !cfg2.WriteManifest {
+		t.Error("WriteManifest not preserved through Save/Load round-trip")
+	}
+}
+
 func TestSaveNoTmpFileLeftBehind(t *testing.T) {
 	src := writeTempYAML(t, fixtureYAML)
 	cfg, _ := config.Load(src)

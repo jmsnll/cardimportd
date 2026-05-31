@@ -85,6 +85,7 @@ type Config struct {
 	LogPath         string               `yaml:"log_path"         json:"log_path"`
 	Notifications   NotificationConfig   `yaml:"notifications,omitempty" json:"notifications,omitempty"`
 	PostImportHook  string               `yaml:"post_import_hook,omitempty" json:"post_import_hook,omitempty"`
+	WriteManifest   bool                 `yaml:"write_manifest,omitempty" json:"write_manifest,omitempty"`
 }
 
 // Default returns a minimal working configuration seeded with Synology-typical paths.
