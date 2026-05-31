@@ -1,0 +1,33 @@
+repos:
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v5.0.0
+    hooks:
+      - id: trailing-whitespace
+      - id: end-of-file-fixer
+      - id: check-yaml
+      - id: check-merge-conflict
+      - id: check-added-large-files
+        args: [--maxkb=500]
+
+  - repo: local
+    hooks:
+      - id: go-vet
+        name: go vet
+        language: system
+        entry: go vet ./...
+        pass_filenames: false
+        types: [go]
+
+      - id: golangci-lint
+        name: golangci-lint
+        language: system
+        entry: golangci-lint run
+        pass_filenames: false
+        types: [go]
+
+      - id: ui-typecheck
+        name: vue-tsc
+        language: system
+        entry: bash -c 'cd ui && ./node_modules/.bin/vue-tsc --noEmit'
+        pass_filenames: false
+        files: ^ui/src/
