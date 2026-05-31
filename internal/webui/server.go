@@ -25,13 +25,14 @@ type ConfigAccessor struct {
 
 // Server is a small HTTP management server embedded in the daemon.
 type Server struct {
-	acc  ConfigAccessor
-	port int
+	acc    ConfigAccessor
+	runner *ImportRunner
+	port   int
 }
 
-// New constructs a Server with the given accessor and listen port.
-func New(acc ConfigAccessor, port int) *Server {
-	return &Server{acc: acc, port: port}
+// New constructs a Server with the given accessor, runner, and listen port.
+func New(acc ConfigAccessor, runner *ImportRunner, port int) *Server {
+	return &Server{acc: acc, runner: runner, port: port}
 }
 
 // Start registers routes and listens until ctx is cancelled.
@@ -46,7 +47,7 @@ func (s *Server) Start(ctx context.Context) error {
 	mux.Handle("/", http.FileServer(http.FS(stripped)))
 
 	// API routes.
-	api := &apiHandler{acc: s.acc}
+	api := &apiHandler{acc: s.acc, runner: s.runner}
 	mux.HandleFunc("/api/config", api.handleConfig)
 	mux.HandleFunc("/api/cards", api.handleCards)
 	mux.HandleFunc("/api/cards/", api.handleCard)   // /api/cards/{uuid}

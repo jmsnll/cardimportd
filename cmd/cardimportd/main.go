@@ -95,6 +95,8 @@ func main() {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
+	runner := webui.NewImportRunner(getCfg, notifier)
+
 	if *webuiPort > 0 {
 		acc := webui.ConfigAccessor{
 			Get:  getCfg,
@@ -102,7 +104,7 @@ func main() {
 			Path: *cfgPath,
 		}
 		go func() {
-			srv := webui.New(acc, *webuiPort)
+			srv := webui.New(acc, runner, *webuiPort)
 			if err := srv.Start(ctx); err != nil {
 				slog.Error("webui: stopped", "error", err)
 			}

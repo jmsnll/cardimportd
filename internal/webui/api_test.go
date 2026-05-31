@@ -42,7 +42,7 @@ func newTestAccessor(t *testing.T) (ConfigAccessor, func() *config.Config) {
 func newHandler(t *testing.T) (*apiHandler, func() *config.Config) {
 	t.Helper()
 	acc, getCurrent := newTestAccessor(t)
-	return &apiHandler{acc: acc}, getCurrent
+	return &apiHandler{acc: acc, runner: nil}, getCurrent
 }
 
 func jsonBody(t *testing.T, v any) *bytes.Buffer {

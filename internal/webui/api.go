@@ -14,7 +14,8 @@ import (
 )
 
 type apiHandler struct {
-	acc ConfigAccessor
+	acc    ConfigAccessor
+	runner *ImportRunner
 }
 
 func writeJSON(w http.ResponseWriter, v any, status int) {
@@ -95,11 +96,19 @@ func (h *apiHandler) handleCards(w http.ResponseWriter, r *http.Request) {
 // -- /api/cards/{uuid} --------------------------------------------------------
 
 func (h *apiHandler) handleCard(w http.ResponseWriter, r *http.Request) {
-	uuid := strings.TrimPrefix(r.URL.Path, "/api/cards/")
-	if uuid == "" {
+	path := strings.TrimPrefix(r.URL.Path, "/api/cards/")
+	if path == "" {
 		apiError(w, "uuid is required", http.StatusBadRequest)
 		return
 	}
+
+	if strings.HasSuffix(path, "/import") {
+		uuid := strings.TrimSuffix(path, "/import")
+		h.handleCardImport(w, r, uuid)
+		return
+	}
+
+	uuid := path
 	switch r.Method {
 	case http.MethodPost:
 		h.updateCard(w, r, uuid)
@@ -108,6 +117,45 @@ func (h *apiHandler) handleCard(w http.ResponseWriter, r *http.Request) {
 	default:
 		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
 	}
+}
+
+type triggerImportRequest struct {
+	MountPath string `json:"mount_path"`
+}
+
+func (h *apiHandler) handleCardImport(w http.ResponseWriter, r *http.Request, uuid string) {
+	if r.Method != http.MethodPost {
+		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+	if !requireJSON(w, r) {
+		return
+	}
+	var req triggerImportRequest
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		apiError(w, fmt.Sprintf("invalid body: %s", err), http.StatusBadRequest)
+		return
+	}
+	if req.MountPath == "" {
+		apiError(w, "mount_path required", http.StatusBadRequest)
+		return
+	}
+	if h.runner == nil {
+		apiError(w, "runner not available", http.StatusServiceUnavailable)
+		return
+	}
+	if err := h.runner.Run(r.Context(), uuid, req.MountPath); err != nil {
+		status := http.StatusInternalServerError
+		if strings.Contains(err.Error(), "already running") {
+			status = http.StatusConflict
+		}
+		if strings.Contains(err.Error(), "not found") || strings.Contains(err.Error(), "not active") {
+			status = http.StatusBadRequest
+		}
+		apiError(w, err.Error(), status)
+		return
+	}
+	writeJSON(w, map[string]string{"status": "accepted"}, http.StatusAccepted)
 }
 
 type cardUpdateRequest struct {

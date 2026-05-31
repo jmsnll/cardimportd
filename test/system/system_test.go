@@ -527,6 +527,27 @@ func TestWebuiUpdateCard(t *testing.T) {
 	}
 }
 
+// TestManualImportTrigger verifies POST /api/cards/{uuid}/import triggers a re-import.
+func TestManualImportTrigger(t *testing.T) {
+	const uuid = "MANU-0001"
+	h := newHarness(t, uuid, true)
+	writeTestJPEG(t, h.mountPoint, "DSCF0001.JPG")
+	h.start()
+	h.triggerMount()
+	wantPath := filepath.Join(h.destDir, "TestOwner's Library", "2024", "03", "15", "DSCF0001.JPG")
+	if !waitFor(10*time.Second, func() bool { _, err := os.Stat(wantPath); return err == nil }) {
+		t.Fatal("initial import never completed")
+	}
+	os.Remove(wantPath)
+	status := h.postJSON("/api/cards/"+uuid+"/import", map[string]string{"mount_path": h.mountPoint})
+	if status != http.StatusAccepted {
+		t.Fatalf("POST trigger: want 202, got %d", status)
+	}
+	if !waitFor(10*time.Second, func() bool { _, err := os.Stat(wantPath); return err == nil }) {
+		t.Fatal("manual re-import never completed")
+	}
+}
+
 // TestWebuiDeleteCard verifies DELETE /api/cards/{uuid} removes a card.
 func TestWebuiDeleteCard(t *testing.T) {
 	const uuid = "WEBU-DEL1"
