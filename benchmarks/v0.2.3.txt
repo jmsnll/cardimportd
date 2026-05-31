@@ -1,0 +1,77 @@
+goos: linux
+goarch: amd64
+pkg: github.com/jmsnll/cardimportd/internal/meta
+cpu: AMD EPYC 7763 64-Core Processor                
+BenchmarkExtractEXIFFromBytes-4   	     268	   4000983 ns/op	  546699 B/op	   11132 allocs/op
+BenchmarkExtractEXIFFromBytes-4   	     748	   1550313 ns/op	  546667 B/op	   11132 allocs/op
+BenchmarkExtractEXIFFromBytes-4   	     852	   1396502 ns/op	  546666 B/op	   11132 allocs/op
+BenchmarkExtractEXIFFromBytes-4   	     861	   1389347 ns/op	  546666 B/op	   11132 allocs/op
+BenchmarkExtractEXIFFromBytes-4   	     853	   1391806 ns/op	  546666 B/op	   11132 allocs/op
+BenchmarkExtractJPEGFile-4        	     847	   1412018 ns/op	  547346 B/op	   11136 allocs/op
+BenchmarkExtractJPEGFile-4        	     848	   1406704 ns/op	  547346 B/op	   11136 allocs/op
+BenchmarkExtractJPEGFile-4        	     844	   1409892 ns/op	  547347 B/op	   11136 allocs/op
+BenchmarkExtractJPEGFile-4        	     844	   1404797 ns/op	  547346 B/op	   11136 allocs/op
+BenchmarkExtractJPEGFile-4        	     848	   1478842 ns/op	  547346 B/op	   11136 allocs/op
+BenchmarkExtractFallbackMtime-4   	  614166	      1898 ns/op	     272 B/op	       2 allocs/op
+BenchmarkExtractFallbackMtime-4   	  605247	      1901 ns/op	     272 B/op	       2 allocs/op
+BenchmarkExtractFallbackMtime-4   	  640899	      1897 ns/op	     272 B/op	       2 allocs/op
+BenchmarkExtractFallbackMtime-4   	  608730	      1886 ns/op	     272 B/op	       2 allocs/op
+BenchmarkExtractFallbackMtime-4   	  610896	      1998 ns/op	     272 B/op	       2 allocs/op
+PASS
+ok  	github.com/jmsnll/cardimportd/internal/meta	17.779s
+2026/05/31 18:12:59 INFO importer: imported src=/tmp/TestImport_BasicWalk1969398570/001/DCIM/100FUJI/DSCF0003.RAF dst="/tmp/TestImport_BasicWalk1969398570/002/James's Library/2026/05/31/DSCF0003.RAF" bytes=1024 action=0 meta_source=2
+2026/05/31 18:12:59 INFO importer: imported src=/tmp/TestImport_BasicWalk1969398570/001/DSCF0001.jpg dst="/tmp/TestImport_BasicWalk1969398570/002/James's Library/2026/05/31/DSCF0001.jpg" bytes=512 action=0 meta_source=2
+2026/05/31 18:12:59 INFO importer: imported src=/tmp/TestImport_BasicWalk1969398570/001/DSCF0002.jpg dst="/tmp/TestImport_BasicWalk1969398570/002/James's Library/2026/05/31/DSCF0002.jpg" bytes=512 action=0 meta_source=2
+2026/05/31 18:12:59 INFO importer: imported src=/tmp/TestImport_SkipUnsupportedExtensions3063872032/001/photo.jpg dst="/tmp/TestImport_SkipUnsupportedExtensions3063872032/002/James's Library/2026/05/31/photo.jpg" bytes=256 action=0 meta_source=2
+2026/05/31 18:12:59 INFO importer: imported src=/tmp/TestImport_SecondRunSkipsDuplicates1526212193/001/DSCF0001.jpg dst="/tmp/TestImport_SecondRunSkipsDuplicates1526212193/002/James's Library/2026/05/31/DSCF0001.jpg" bytes=512 action=0 meta_source=2
+2026/05/31 18:12:59 INFO importer: imported src=/tmp/TestImport_BasicWalk1233443628/001/DCIM/100FUJI/DSCF0003.RAF dst="/tmp/TestImport_BasicWalk1233443628/002/James's Library/2026/05/31/DSCF0003.RAF" bytes=1024 action=0 meta_source=2
+2026/05/31 18:12:59 INFO importer: imported src=/tmp/TestImport_BasicWalk1233443628/001/DSCF0001.jpg dst="/tmp/TestImport_BasicWalk1233443628/002/James's Library/2026/05/31/DSCF0001.jpg" bytes=512 action=0 meta_source=2
+2026/05/31 18:12:59 INFO importer: imported src=/tmp/TestImport_BasicWalk1233443628/001/DSCF0002.jpg dst="/tmp/TestImport_BasicWalk1233443628/002/James's Library/2026/05/31/DSCF0002.jpg" bytes=512 action=0 meta_source=2
+2026/05/31 18:12:59 INFO importer: imported src=/tmp/TestImport_SkipUnsupportedExtensions4284218194/001/photo.jpg dst="/tmp/TestImport_SkipUnsupportedExtensions4284218194/002/James's Library/2026/05/31/photo.jpg" bytes=256 action=0 meta_source=2
+2026/05/31 18:12:59 INFO importer: imported src=/tmp/TestImport_SecondRunSkipsDuplicates347644244/001/DSCF0001.jpg dst="/tmp/TestImport_SecondRunSkipsDuplicates347644244/002/James's Library/2026/05/31/DSCF0001.jpg" bytes=512 action=0 meta_source=2
+2026/05/31 18:12:59 INFO importer: imported src=/tmp/TestImport_BasicWalk3709275532/001/DCIM/100FUJI/DSCF0003.RAF dst="/tmp/TestImport_BasicWalk3709275532/002/James's Library/2026/05/31/DSCF0003.RAF" bytes=1024 action=0 meta_source=2
+2026/05/31 18:12:59 INFO importer: imported src=/tmp/TestImport_BasicWalk3709275532/001/DSCF0001.jpg dst="/tmp/TestImport_BasicWalk3709275532/002/James's Library/2026/05/31/DSCF0001.jpg" bytes=512 action=0 meta_source=2
+2026/05/31 18:12:59 INFO importer: imported src=/tmp/TestImport_BasicWalk3709275532/001/DSCF0002.jpg dst="/tmp/TestImport_BasicWalk3709275532/002/James's Library/2026/05/31/DSCF0002.jpg" bytes=512 action=0 meta_source=2
+2026/05/31 18:12:59 INFO importer: imported src=/tmp/TestImport_SkipUnsupportedExtensions2412567933/001/photo.jpg dst="/tmp/TestImport_SkipUnsupportedExtensions2412567933/002/James's Library/2026/05/31/photo.jpg" bytes=256 action=0 meta_source=2
+2026/05/31 18:12:59 INFO importer: imported src=/tmp/TestImport_SecondRunSkipsDuplicates2741111535/001/DSCF0001.jpg dst="/tmp/TestImport_SecondRunSkipsDuplicates2741111535/002/James's Library/2026/05/31/DSCF0001.jpg" bytes=512 action=0 meta_source=2
+2026/05/31 18:12:59 INFO importer: imported src=/tmp/TestImport_BasicWalk2133584908/001/DCIM/100FUJI/DSCF0003.RAF dst="/tmp/TestImport_BasicWalk2133584908/002/James's Library/2026/05/31/DSCF0003.RAF" bytes=1024 action=0 meta_source=2
+2026/05/31 18:12:59 INFO importer: imported src=/tmp/TestImport_BasicWalk2133584908/001/DSCF0001.jpg dst="/tmp/TestImport_BasicWalk2133584908/002/James's Library/2026/05/31/DSCF0001.jpg" bytes=512 action=0 meta_source=2
+2026/05/31 18:12:59 INFO importer: imported src=/tmp/TestImport_BasicWalk2133584908/001/DSCF0002.jpg dst="/tmp/TestImport_BasicWalk2133584908/002/James's Library/2026/05/31/DSCF0002.jpg" bytes=512 action=0 meta_source=2
+2026/05/31 18:12:59 INFO importer: imported src=/tmp/TestImport_SkipUnsupportedExtensions3772247472/001/photo.jpg dst="/tmp/TestImport_SkipUnsupportedExtensions3772247472/002/James's Library/2026/05/31/photo.jpg" bytes=256 action=0 meta_source=2
+2026/05/31 18:12:59 INFO importer: imported src=/tmp/TestImport_SecondRunSkipsDuplicates3173945904/001/DSCF0001.jpg dst="/tmp/TestImport_SecondRunSkipsDuplicates3173945904/002/James's Library/2026/05/31/DSCF0001.jpg" bytes=512 action=0 meta_source=2
+2026/05/31 18:12:59 INFO importer: imported src=/tmp/TestImport_BasicWalk3496523550/001/DCIM/100FUJI/DSCF0003.RAF dst="/tmp/TestImport_BasicWalk3496523550/002/James's Library/2026/05/31/DSCF0003.RAF" bytes=1024 action=0 meta_source=2
+2026/05/31 18:12:59 INFO importer: imported src=/tmp/TestImport_BasicWalk3496523550/001/DSCF0001.jpg dst="/tmp/TestImport_BasicWalk3496523550/002/James's Library/2026/05/31/DSCF0001.jpg" bytes=512 action=0 meta_source=2
+2026/05/31 18:12:59 INFO importer: imported src=/tmp/TestImport_BasicWalk3496523550/001/DSCF0002.jpg dst="/tmp/TestImport_BasicWalk3496523550/002/James's Library/2026/05/31/DSCF0002.jpg" bytes=512 action=0 meta_source=2
+2026/05/31 18:12:59 INFO importer: imported src=/tmp/TestImport_SkipUnsupportedExtensions1505752089/001/photo.jpg dst="/tmp/TestImport_SkipUnsupportedExtensions1505752089/002/James's Library/2026/05/31/photo.jpg" bytes=256 action=0 meta_source=2
+2026/05/31 18:12:59 INFO importer: imported src=/tmp/TestImport_SecondRunSkipsDuplicates600026539/001/DSCF0001.jpg dst="/tmp/TestImport_SecondRunSkipsDuplicates600026539/002/James's Library/2026/05/31/DSCF0001.jpg" bytes=512 action=0 meta_source=2
+goos: linux
+goarch: amd64
+pkg: github.com/jmsnll/cardimportd/internal/importer
+cpu: AMD EPYC 7763 64-Core Processor                
+BenchmarkCopyVerified/1KB-4  	   10000	    120837 ns/op	   8.47 MB/s	   34655 B/op	      32 allocs/op
+BenchmarkCopyVerified/1KB-4  	   10000	    118866 ns/op	   8.61 MB/s	   34654 B/op	      32 allocs/op
+BenchmarkCopyVerified/1KB-4  	   10000	    119515 ns/op	   8.57 MB/s	   34655 B/op	      32 allocs/op
+BenchmarkCopyVerified/1KB-4  	   10000	    118090 ns/op	   8.67 MB/s	   34655 B/op	      32 allocs/op
+BenchmarkCopyVerified/1KB-4  	   10000	    117294 ns/op	   8.73 MB/s	   34654 B/op	      32 allocs/op
+BenchmarkCopyVerified/1MB-4  	     658	   1834208 ns/op	 571.68 MB/s	   34655 B/op	      31 allocs/op
+BenchmarkCopyVerified/1MB-4  	     660	   1828829 ns/op	 573.36 MB/s	   34656 B/op	      31 allocs/op
+BenchmarkCopyVerified/1MB-4  	     657	   1836653 ns/op	 570.92 MB/s	   34657 B/op	      31 allocs/op
+BenchmarkCopyVerified/1MB-4  	     652	   1835530 ns/op	 571.27 MB/s	   34656 B/op	      31 allocs/op
+BenchmarkCopyVerified/1MB-4  	     658	   1837748 ns/op	 570.58 MB/s	   34655 B/op	      31 allocs/op
+BenchmarkCopyVerified/100MB-4         	       6	 172886127 ns/op	 606.51 MB/s	   34849 B/op	      32 allocs/op
+BenchmarkCopyVerified/100MB-4         	       6	 173887445 ns/op	 603.02 MB/s	   34846 B/op	      33 allocs/op
+BenchmarkCopyVerified/100MB-4         	       6	 173315139 ns/op	 605.01 MB/s	   34830 B/op	      32 allocs/op
+BenchmarkCopyVerified/100MB-4         	       6	 173201283 ns/op	 605.41 MB/s	   34806 B/op	      32 allocs/op
+BenchmarkCopyVerified/100MB-4         	       6	 173077713 ns/op	 605.84 MB/s	   34849 B/op	      32 allocs/op
+BenchmarkCheckDupNoExist-4            	  839881	      1255 ns/op	     320 B/op	       3 allocs/op
+BenchmarkCheckDupNoExist-4            	  977868	      1248 ns/op	     320 B/op	       3 allocs/op
+BenchmarkCheckDupNoExist-4            	  947088	      1259 ns/op	     320 B/op	       3 allocs/op
+BenchmarkCheckDupNoExist-4            	  851386	      1281 ns/op	     320 B/op	       3 allocs/op
+BenchmarkCheckDupNoExist-4            	  953514	      1265 ns/op	     320 B/op	       3 allocs/op
+BenchmarkCheckDupSkip-4               	   83728	     14298 ns/op	    5929 B/op	      20 allocs/op
+BenchmarkCheckDupSkip-4               	   83647	     14176 ns/op	    5929 B/op	      20 allocs/op
+BenchmarkCheckDupSkip-4               	   84517	     14121 ns/op	    5881 B/op	      20 allocs/op
+BenchmarkCheckDupSkip-4               	   85825	     14123 ns/op	    5929 B/op	      20 allocs/op
+BenchmarkCheckDupSkip-4               	   85656	     14063 ns/op	    5929 B/op	      20 allocs/op
+PASS
+ok  	github.com/jmsnll/cardimportd/internal/importer	32.442s
