@@ -33,13 +33,34 @@ type CardEntry struct {
 
 // PushoverConfig holds credentials for the Pushover push notification service.
 type PushoverConfig struct {
-	AppToken string `yaml:"app_token" json:"app_token"`
-	UserKey  string `yaml:"user_key"  json:"user_key"`
+	AppToken string   `yaml:"app_token"        json:"app_token"`
+	UserKey  string   `yaml:"user_key"         json:"user_key"`
+	Events   []string `yaml:"events,omitempty" json:"events,omitempty"`
+}
+
+// NtfyConfig holds settings for an ntfy topic (ntfy.sh or self-hosted).
+// URL must be the full topic URL, e.g. https://ntfy.sh/mycards or
+// http://nas:8080/mycards. Token is optional (Bearer auth).
+type NtfyConfig struct {
+	URL    string   `yaml:"url"              json:"url"`
+	Token  string   `yaml:"token,omitempty"  json:"token,omitempty"`
+	Events []string `yaml:"events,omitempty" json:"events,omitempty"`
+}
+
+// WebhookConfig holds settings for a generic HTTP webhook.
+// If Secret is non-empty the request carries an X-Cardimportd-Signature header
+// (HMAC-SHA256 of the JSON body, hex-encoded, prefixed with "sha256=").
+type WebhookConfig struct {
+	URL    string   `yaml:"url"              json:"url"`
+	Secret string   `yaml:"secret,omitempty" json:"secret,omitempty"`
+	Events []string `yaml:"events,omitempty" json:"events,omitempty"`
 }
 
 // NotificationConfig groups optional push notification adapters.
 type NotificationConfig struct {
-	Pushover *PushoverConfig `yaml:"pushover,omitempty"`
+	Pushover *PushoverConfig `yaml:"pushover,omitempty" json:"pushover,omitempty"`
+	Ntfy     *NtfyConfig     `yaml:"ntfy,omitempty"     json:"ntfy,omitempty"`
+	Webhook  *WebhookConfig  `yaml:"webhook,omitempty"  json:"webhook,omitempty"`
 }
 
 // Config is the top-level configuration structure for cardimportd.

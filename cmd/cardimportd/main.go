@@ -52,8 +52,19 @@ func main() {
 	logNotifier := notify.NewLogNotifier(logger)
 	notifiers := []notify.Notifier{logNotifier}
 	if p := initialCfg.Notifications.Pushover; p != nil && p.AppToken != "" && p.UserKey != "" {
-		notifiers = append(notifiers, notify.NewPushoverNotifier(p.AppToken, p.UserKey))
+		n := notify.NewFilteredNotifier(notify.NewPushoverNotifier(p.AppToken, p.UserKey), p.Events)
+		notifiers = append(notifiers, n)
 		slog.Info("pushover notifications enabled")
+	}
+	if nt := initialCfg.Notifications.Ntfy; nt != nil && nt.URL != "" {
+		n := notify.NewFilteredNotifier(notify.NewNtfyNotifier(nt.URL, nt.Token), nt.Events)
+		notifiers = append(notifiers, n)
+		slog.Info("ntfy notifications enabled", "url", nt.URL)
+	}
+	if wh := initialCfg.Notifications.Webhook; wh != nil && wh.URL != "" {
+		n := notify.NewFilteredNotifier(notify.NewWebhookNotifier(wh.URL, wh.Secret), wh.Events)
+		notifiers = append(notifiers, n)
+		slog.Info("webhook notifications enabled", "url", wh.URL)
 	}
 	notifier := notify.NewMultiNotifier(notifiers...)
 

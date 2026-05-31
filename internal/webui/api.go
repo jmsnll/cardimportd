@@ -173,20 +173,45 @@ func (h *apiHandler) handleNotifyTest(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
 		return
 	}
+
+	adapter := r.URL.Query().Get("adapter")
 	cfg := h.acc.Get()
-	po := cfg.Notifications.Pushover
-	if po == nil || po.AppToken == "" || po.UserKey == "" {
-		apiError(w, "pushover is not configured", http.StatusBadRequest)
+
+	var n notify.Notifier
+	switch adapter {
+	case "", "pushover":
+		po := cfg.Notifications.Pushover
+		if po == nil || po.AppToken == "" || po.UserKey == "" {
+			apiError(w, "pushover is not configured", http.StatusBadRequest)
+			return
+		}
+		n = notify.NewPushoverNotifier(po.AppToken, po.UserKey)
+	case "ntfy":
+		nt := cfg.Notifications.Ntfy
+		if nt == nil || nt.URL == "" {
+			apiError(w, "ntfy is not configured", http.StatusBadRequest)
+			return
+		}
+		n = notify.NewNtfyNotifier(nt.URL, nt.Token)
+	case "webhook":
+		wh := cfg.Notifications.Webhook
+		if wh == nil || wh.URL == "" {
+			apiError(w, "webhook is not configured", http.StatusBadRequest)
+			return
+		}
+		n = notify.NewWebhookNotifier(wh.URL, wh.Secret)
+	default:
+		apiError(w, fmt.Sprintf("unknown adapter %q", adapter), http.StatusBadRequest)
 		return
 	}
-	n := notify.NewPushoverNotifier(po.AppToken, po.UserKey)
+
 	ev := notify.Event{
 		Kind:   notify.KindImportCompleted,
 		Detail: "test notification from cardimportd webui",
 		Time:   time.Now().UTC(),
 	}
 	if err := n.Notify(context.Background(), ev); err != nil {
-		slog.Error("webui: pushover test", "err", err)
+		slog.Error("webui: notify test", "adapter", adapter, "err", err)
 		apiError(w, fmt.Sprintf("notification failed: %s", err), http.StatusInternalServerError)
 		return
 	}

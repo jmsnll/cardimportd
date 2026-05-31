@@ -135,29 +135,88 @@ async function saveSettings() {
   } catch(err) { showToast(err.message, 'error'); }
 }
 
+function eventsPlaceholder() {
+  return 'import_completed, import_failed, new_card_pending, import_started';
+}
+
 function renderNotifications(cfg) {
-  const po = (cfg.notifications && cfg.notifications.pushover) ? cfg.notifications.pushover : { app_token: '', user_key: '' };
-  document.getElementById('panel-notifications').innerHTML = '<div class="surface">' +
-    '<div class="panel-heading">Pushover</div>' +
-    '<div class="note">Pushover sends push notifications when imports complete or fail. ' +
-      'Create an application at <strong>pushover.net</strong> to get an app token.</div>' +
-    '<div class="form-group"><label>App token</label>' +
-      '<input type="text" id="n-app-token" value="' + (po.app_token || '') + '" placeholder="aXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX"></div>' +
-    '<div class="form-group"><label>User key</label>' +
-      '<input type="text" id="n-user-key" value="' + (po.user_key || '') + '" placeholder="uXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX"></div>' +
-    '<div class="form-actions">' +
-      '<button class="btn btn-primary" onclick="saveNotifications()">Save</button> ' +
-      '<button class="btn btn-secondary" onclick="testNotification()">Send test</button>' +
-    '</div></div>';
+  const n = cfg.notifications || {};
+  const po = n.pushover || {};
+  const nt = n.ntfy    || {};
+  const wh = n.webhook || {};
+
+  function eventsVal(arr) { return (arr || []).join(', '); }
+
+  document.getElementById('panel-notifications').innerHTML =
+    '<div class="surface">' +
+      '<div class="panel-heading">Pushover</div>' +
+      '<div class="note">Mobile push via <strong>pushover.net</strong>. Leave blank to disable.</div>' +
+      '<div class="form-group"><label>App token</label>' +
+        '<input type="text" id="n-po-token" value="' + (po.app_token||'') + '" placeholder="aXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX"></div>' +
+      '<div class="form-group"><label>User key</label>' +
+        '<input type="text" id="n-po-user" value="' + (po.user_key||'') + '" placeholder="uXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX"></div>' +
+      '<div class="form-group"><label>Events (comma-separated, empty = all)</label>' +
+        '<input type="text" id="n-po-events" value="' + eventsVal(po.events) + '" placeholder="' + eventsPlaceholder() + '"></div>' +
+      '<div class="form-actions">' +
+        '<button class="btn btn-secondary" onclick="testNotification(\'pushover\')">Send test</button>' +
+      '</div>' +
+    '</div>' +
+
+    '<div class="surface" style="margin-top:1rem">' +
+      '<div class="panel-heading">ntfy</div>' +
+      '<div class="note">Self-hosted or cloud push via <strong>ntfy.sh</strong>. ' +
+        'Enter the full topic URL, e.g. <code>https://ntfy.sh/mycards</code>.</div>' +
+      '<div class="form-group"><label>Topic URL</label>' +
+        '<input type="text" id="n-nt-url" value="' + (nt.url||'') + '" placeholder="https://ntfy.sh/mycards"></div>' +
+      '<div class="form-group"><label>Token (optional)</label>' +
+        '<input type="text" id="n-nt-token" value="' + (nt.token||'') + '" placeholder="Bearer token"></div>' +
+      '<div class="form-group"><label>Events (comma-separated, empty = all)</label>' +
+        '<input type="text" id="n-nt-events" value="' + eventsVal(nt.events) + '" placeholder="' + eventsPlaceholder() + '"></div>' +
+      '<div class="form-actions">' +
+        '<button class="btn btn-secondary" onclick="testNotification(\'ntfy\')">Send test</button>' +
+      '</div>' +
+    '</div>' +
+
+    '<div class="surface" style="margin-top:1rem">' +
+      '<div class="panel-heading">Webhook</div>' +
+      '<div class="note">HTTP POST JSON events to any URL. If a secret is set, each request ' +
+        'includes an <code>X-Cardimportd-Signature: sha256=&lt;hmac&gt;</code> header.</div>' +
+      '<div class="form-group"><label>URL</label>' +
+        '<input type="text" id="n-wh-url" value="' + (wh.url||'') + '" placeholder="https://hooks.example.com/cardimportd"></div>' +
+      '<div class="form-group"><label>Secret (optional)</label>' +
+        '<input type="password" id="n-wh-secret" value="' + (wh.secret||'') + '" placeholder="HMAC signing secret"></div>' +
+      '<div class="form-group"><label>Events (comma-separated, empty = all)</label>' +
+        '<input type="text" id="n-wh-events" value="' + eventsVal(wh.events) + '" placeholder="' + eventsPlaceholder() + '"></div>' +
+      '<div class="form-actions">' +
+        '<button class="btn btn-secondary" onclick="testNotification(\'webhook\')">Send test</button>' +
+      '</div>' +
+    '</div>' +
+
+    '<div class="form-actions" style="margin-top:1rem">' +
+      '<button class="btn btn-primary" onclick="saveNotifications()">Save all</button>' +
+    '</div>';
+}
+
+function parseEvents(id) {
+  return document.getElementById(id).value.split(',').map(s => s.trim()).filter(Boolean);
 }
 
 async function saveNotifications() {
-  const updated = Object.assign({}, _cfg, {
-    notifications: { pushover: {
-      app_token: document.getElementById('n-app-token').value.trim(),
-      user_key: document.getElementById('n-user-key').value.trim(),
-    }},
-  });
+  const notifications = {};
+  const poToken = document.getElementById('n-po-token').value.trim();
+  const poUser  = document.getElementById('n-po-user').value.trim();
+  if (poToken || poUser) {
+    notifications.pushover = { app_token: poToken, user_key: poUser, events: parseEvents('n-po-events') };
+  }
+  const ntURL = document.getElementById('n-nt-url').value.trim();
+  if (ntURL) {
+    notifications.ntfy = { url: ntURL, token: document.getElementById('n-nt-token').value.trim(), events: parseEvents('n-nt-events') };
+  }
+  const whURL = document.getElementById('n-wh-url').value.trim();
+  if (whURL) {
+    notifications.webhook = { url: whURL, secret: document.getElementById('n-wh-secret').value.trim(), events: parseEvents('n-wh-events') };
+  }
+  const updated = Object.assign({}, _cfg, { notifications });
   try {
     await apiFetch('/api/config', { method: 'POST', body: JSON.stringify(updated) });
     _cfg = updated;
@@ -165,10 +224,10 @@ async function saveNotifications() {
   } catch(err) { showToast(err.message, 'error'); }
 }
 
-async function testNotification() {
+async function testNotification(adapter) {
   try {
-    await apiFetch('/api/notify/test', { method: 'POST' });
-    showToast('Test notification sent');
+    await apiFetch('/api/notify/test?adapter=' + encodeURIComponent(adapter), { method: 'POST' });
+    showToast('Test notification sent (' + adapter + ')');
   } catch(err) { showToast(err.message, 'error'); }
 }
 
