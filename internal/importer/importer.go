@@ -37,6 +37,7 @@ func New(cfg *config.Config, notifier notify.Notifier) *Importer {
 // per-owner destination under cfg.ImportRoot.
 func (imp *Importer) Import(ctx context.Context, owner, mountPath string) (Result, error) {
 	var res Result
+	var entries []manifestEntry
 
 	if err := preflight(mountPath, imp.cfg.ImportRoot, imp.cfg.MinFreeGB); err != nil {
 		return Result{}, fmt.Errorf("preflight: %w", err)
@@ -63,7 +64,7 @@ func (imp *Importer) Import(ctx context.Context, owner, mountPath string) (Resul
 		}
 
 		res.Total++
-		n, action, err := imp.importFile(ctx, owner, path)
+		n, hash, dstPath, action, err := imp.importFile(ctx, owner, path)
 		if err != nil {
 			slog.Error("importer: failed", "src", path, "error", err)
 			res.Failed++
@@ -75,9 +76,21 @@ func (imp *Importer) Import(ctx context.Context, owner, mountPath string) (Resul
 		default:
 			res.Imported++
 			res.BytesCopied += n
+			if imp.cfg.WriteManifest && hash != "" {
+				if rel, relErr := filepath.Rel(imp.cfg.ImportRoot, dstPath); relErr == nil {
+					entries = append(entries, manifestEntry{hash: hash, relPath: rel})
+				}
+			}
 		}
 		return nil
 	})
+
+	if err == nil && imp.cfg.WriteManifest && len(entries) > 0 {
+		mPath := manifestFilePath(imp.cfg.ImportRoot, owner)
+		if mErr := writeManifest(mPath, entries); mErr != nil {
+			slog.Warn("importer: manifest write failed", "error", mErr)
+		}
+	}
 
 	if err == nil && imp.cfg.PostImportHook != "" {
 		if hookErr := runHook(imp.cfg.PostImportHook, owner, mountPath, res); hookErr != nil {
@@ -87,7 +100,7 @@ func (imp *Importer) Import(ctx context.Context, owner, mountPath string) (Resul
 	return res, err
 }
 
-func (imp *Importer) importFile(ctx context.Context, owner, srcPath string) (int64, dupAction, error) {
+func (imp *Importer) importFile(ctx context.Context, owner, srcPath string) (n int64, hash string, dstPath string, action dupAction, err error) {
 	m := meta.Extract(srcPath)
 
 	dstDir := filepath.Join(
@@ -101,21 +114,21 @@ func (imp *Importer) importFile(ctx context.Context, owner, srcPath string) (int
 
 	dup, err := checkDup(srcPath, naiveDst, m)
 	if err != nil {
-		return 0, 0, fmt.Errorf("dedup check: %w", err)
+		return 0, "", "", 0, fmt.Errorf("dedup check: %w", err)
 	}
 
 	if dup.action == dupSkip {
 		slog.Debug("importer: skip (duplicate)", "src", srcPath, "dst", dup.dstPath)
-		return 0, dupSkip, nil
+		return 0, "", dup.dstPath, dupSkip, nil
 	}
 
 	if err := os.MkdirAll(filepath.Dir(dup.dstPath), 0o755); err != nil {
-		return 0, 0, fmt.Errorf("mkdir: %w", err)
+		return 0, "", "", 0, fmt.Errorf("mkdir: %w", err)
 	}
 
-	n, err := copyVerified(srcPath, dup.dstPath)
+	n, hash, err = copyVerified(srcPath, dup.dstPath)
 	if err != nil {
-		return 0, 0, err
+		return 0, "", "", 0, err
 	}
 
 	slog.Info("importer: imported",
@@ -125,5 +138,5 @@ func (imp *Importer) importFile(ctx context.Context, owner, srcPath string) (int
 		"action", dup.action,
 		"meta_source", m.Source,
 	)
-	return n, dup.action, nil
+	return n, hash, dup.dstPath, dup.action, nil
 }

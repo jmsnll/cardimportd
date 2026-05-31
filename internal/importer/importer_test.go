@@ -58,7 +58,7 @@ func TestCopyVerified_Basic(t *testing.T) {
 	src := makeFile(t, dir, "src.bin", data)
 	dst := filepath.Join(dir, "dst.bin")
 
-	n, err := copyVerified(src, dst)
+	n, _, err := copyVerified(src, dst)
 	if err != nil {
 		t.Fatalf("copyVerified: %v", err)
 	}
@@ -76,7 +76,7 @@ func TestCopyVerified_Basic(t *testing.T) {
 
 func TestCopyVerified_MissingSrc(t *testing.T) {
 	dir := t.TempDir()
-	_, err := copyVerified(filepath.Join(dir, "missing.bin"), filepath.Join(dir, "out.bin"))
+	_, _, err := copyVerified(filepath.Join(dir, "missing.bin"), filepath.Join(dir, "out.bin"))
 	if err == nil {
 		t.Fatal("expected error for missing src")
 	}
@@ -231,6 +231,40 @@ func TestImport_SkipUnsupportedExtensions(t *testing.T) {
 	}
 	if res.Total != 1 {
 		t.Errorf("Total = %d, want 1", res.Total)
+	}
+}
+
+func TestImport_ManifestWritten(t *testing.T) {
+	cardDir, dstRoot := t.TempDir(), t.TempDir()
+	makeFile(t, cardDir, "a.jpg", randomBytes(t, 512))
+	makeFile(t, cardDir, "b.jpg", randomBytes(t, 512))
+	cfg := makeConfig(dstRoot)
+	cfg.WriteManifest = true
+	res, err := New(cfg, &discardNotifier{}).Import(context.Background(), "James", cardDir)
+	if err != nil {
+		t.Fatalf("Import: %v", err)
+	}
+	if res.Imported != 2 {
+		t.Fatalf("Imported = %d", res.Imported)
+	}
+	mPath := filepath.Join(dstRoot, "James's Library", "cardimportd-manifest.txt")
+	data, err := os.ReadFile(mPath)
+	if err != nil {
+		t.Fatalf("manifest missing: %v", err)
+	}
+	if lines := strings.Split(strings.TrimSpace(string(data)), "\n"); len(lines) != 2 {
+		t.Errorf("manifest lines = %d, want 2", len(lines))
+	}
+}
+
+func TestImport_ManifestDisabled(t *testing.T) {
+	cardDir, dstRoot := t.TempDir(), t.TempDir()
+	makeFile(t, cardDir, "a.jpg", randomBytes(t, 512))
+	cfg := makeConfig(dstRoot)
+	cfg.WriteManifest = false
+	New(cfg, &discardNotifier{}).Import(context.Background(), "James", cardDir)
+	if _, err := os.Stat(filepath.Join(dstRoot, "James's Library", "cardimportd-manifest.txt")); !os.IsNotExist(err) {
+		t.Error("manifest written when disabled")
 	}
 }
 
