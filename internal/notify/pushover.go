@@ -60,24 +60,32 @@ func (p *pushoverNotifier) Notify(ctx context.Context, event Event) error {
 	return nil
 }
 
+func ownerDisplay(owner, label string) string {
+	if label != "" {
+		return owner + " (" + label + ")"
+	}
+	return owner
+}
+
 func formatEvent(e Event) (title, message string) {
+	display := ownerDisplay(e.Owner, e.CardLabel)
 	switch e.Kind {
 	case KindNewCardPending:
 		return "cardimportd: new card",
 			fmt.Sprintf("Unknown card inserted (UUID: %s)\nEdit config to activate.", e.CardUUID)
 	case KindImportStarted:
 		return "cardimportd: import started",
-			fmt.Sprintf("Importing %s's card…", e.Owner)
+			fmt.Sprintf("Importing %s's card…", display)
 	case KindImportCompleted:
 		if s := e.Stats; s != nil {
-			return fmt.Sprintf("cardimportd: %s imported", e.Owner),
+			return fmt.Sprintf("cardimportd: %s imported", display),
 				fmt.Sprintf("%d files imported, %d skipped, %d failed\nDuration: %s",
 					s.Imported, s.Skipped, s.Failed, s.Duration.Round(time.Second))
 		}
 		return "cardimportd: import complete", "Import finished."
 	case KindImportFailed:
 		return "cardimportd: import FAILED",
-			fmt.Sprintf("Import failed for %s\n%s", e.Owner, e.Detail)
+			fmt.Sprintf("Import failed for %s\n%s", display, e.Detail)
 	default:
 		return "cardimportd", string(e.Kind)
 	}

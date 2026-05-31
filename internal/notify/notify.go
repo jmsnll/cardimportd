@@ -35,6 +35,7 @@ type Event struct {
 	Kind      EventKind
 	CardUUID  string
 	Owner     string
+	CardLabel string
 	MountPath string
 	Time      time.Time
 	Detail    string

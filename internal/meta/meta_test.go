@@ -300,6 +300,30 @@ func TestExtract_FallsBackToMtimeForUnknownExtension(t *testing.T) {
 	}
 }
 
+func TestExtract_DNGFallsBackGracefully(t *testing.T) {
+	// Write random bytes as a .dng file — EXIF extraction will fail and the
+	// function must fall back to mtime without panicking.
+	f, err := os.CreateTemp(t.TempDir(), "*.dng")
+	if err != nil {
+		t.Fatalf("CreateTemp: %v", err)
+	}
+	_, _ = f.Write(make([]byte, 64)) // 64 zero bytes — not valid EXIF
+	path := f.Name()
+	f.Close()
+
+	before := time.Now().Add(-time.Second)
+	got := Extract(path)
+	after := time.Now().Add(time.Second)
+
+	if got.Source != SourceMtime {
+		t.Errorf("Source = %v, want SourceMtime for invalid DNG content", got.Source)
+	}
+	if got.DateTimeOriginal.Before(before) || got.DateTimeOriginal.After(after) {
+		t.Errorf("DateTimeOriginal %v not in expected mtime range [%v, %v]",
+			got.DateTimeOriginal, before, after)
+	}
+}
+
 func TestExtract_FallsBackToMtimeForMP4WithNoMoov(t *testing.T) {
 	var b bytes.Buffer
 	writeBox(&b, "ftyp", make([]byte, 8))

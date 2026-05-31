@@ -50,7 +50,9 @@ func Extract(path string) FileMeta {
 		}
 		slog.Debug("meta: RAF EXIF extraction failed, falling back", "path", path)
 
-	case ".jpg", ".jpeg", ".arw", ".tif", ".tiff":
+	case ".jpg", ".jpeg", ".arw", ".tif", ".tiff",
+		".cr3", ".cr2", ".nef", ".nrw", ".dng", ".orf", ".rw2",
+		".heic", ".heif":
 		if m, ok := extractEXIFFromFile(path); ok {
 			return m
 		}

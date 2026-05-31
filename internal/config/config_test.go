@@ -154,6 +154,60 @@ func TestRegisterPendingActiveCardUntouched(t *testing.T) {
 	}
 }
 
+func TestCardEntryLabel(t *testing.T) {
+	const labelYAML = `watch_paths:
+  - /volumeUSB1/usbshare
+import_root: /volume1/photos
+cards:
+  DEAD-BEEF:
+    owner: James
+    label: "Fujifilm X-T5"
+    status: active
+`
+	src := writeTempYAML(t, labelYAML)
+	cfg, err := config.Load(src)
+	if err != nil {
+		t.Fatalf("Load: %v", err)
+	}
+	entry, ok := cfg.LookupCard("DEAD-BEEF")
+	if !ok {
+		t.Fatal("card DEAD-BEEF not found after Load")
+	}
+	if entry.Label != "Fujifilm X-T5" {
+		t.Errorf("Label = %q, want %q", entry.Label, "Fujifilm X-T5")
+	}
+
+	dst := filepath.Join(t.TempDir(), "config-label-out.yaml")
+	if err := cfg.Save(dst); err != nil {
+		t.Fatalf("Save: %v", err)
+	}
+	cfg2, err := config.Load(dst)
+	if err != nil {
+		t.Fatalf("Load after Save: %v", err)
+	}
+	entry2, ok := cfg2.LookupCard("DEAD-BEEF")
+	if !ok {
+		t.Fatal("card DEAD-BEEF not found after Save/Load round-trip")
+	}
+	if entry2.Label != "Fujifilm X-T5" {
+		t.Errorf("round-trip Label = %q, want %q", entry2.Label, "Fujifilm X-T5")
+	}
+}
+
+func TestDefaultFileExtensionsExpanded(t *testing.T) {
+	cfg := config.Default()
+	want := []string{".cr3", ".nef", ".dng", ".heic"}
+	extSet := make(map[string]bool, len(cfg.FileExtensions))
+	for _, e := range cfg.FileExtensions {
+		extSet[e] = true
+	}
+	for _, ext := range want {
+		if !extSet[ext] {
+			t.Errorf("default FileExtensions missing %q", ext)
+		}
+	}
+}
+
 func TestSaveNoTmpFileLeftBehind(t *testing.T) {
 	src := writeTempYAML(t, fixtureYAML)
 	cfg, _ := config.Load(src)
