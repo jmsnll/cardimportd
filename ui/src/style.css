@@ -83,14 +83,6 @@ main {
   margin: 0 auto;
 }
 
-.panel {
-  display: none;
-}
-
-.panel.active {
-  display: block;
-}
-
 /* ----------------------------------------------------------
    Section heading inside a panel
    ---------------------------------------------------------- */
@@ -385,7 +377,7 @@ select:focus {
 /* ----------------------------------------------------------
    Toast
    ---------------------------------------------------------- */
-#toast {
+.toast {
   position: fixed;
   bottom: 24px;
   right: 24px;
@@ -402,14 +394,14 @@ select:focus {
   pointer-events: none;
 }
 
-#toast.toast-visible {
+.toast.toast-visible {
   transform: translateX(0);
 }
 
-#toast.toast-success {
+.toast.toast-success {
   background: #5cb85c;
 }
 
-#toast.toast-error {
+.toast.toast-error {
   background: #d9534f;
 }
