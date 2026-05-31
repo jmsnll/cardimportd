@@ -43,3 +43,7 @@ export function testNotification(): Promise<{ ok: boolean }> {
     method: 'POST',
   })
 }
+
+export function browseFSDir(path: string): Promise<{ path: string; entries: string[] }> {
+  return apiFetch(`/api/fs?path=${encodeURIComponent(path)}`)
+}

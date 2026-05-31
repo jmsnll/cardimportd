@@ -1,35 +1,55 @@
 <template>
-  <div class="surface">
-    <div class="panel-heading">Pushover</div>
+  <div class="box">
+    <h2 class="title is-5 mb-4">Pushover</h2>
 
-    <div class="note">
-      Pushover sends push notifications when imports complete or fail.
-      Create an application at <strong>pushover.net</strong> to get an app token.
-    </div>
+    <article class="message is-info mb-5">
+      <div class="message-body">
+        Pushover sends push notifications when imports complete or fail.
+        Create an application at <strong>pushover.net</strong> to obtain an app token.
+      </div>
+    </article>
 
-    <div class="form-group">
-      <label for="n-app-token">App token</label>
-      <input
-        id="n-app-token"
-        type="text"
-        v-model="appToken"
-        placeholder="aXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX"
-      />
-    </div>
+    <fieldset>
+      <legend class="is-sr-only">Pushover credentials</legend>
 
-    <div class="form-group">
-      <label for="n-user-key">User key</label>
-      <input
-        id="n-user-key"
-        type="text"
-        v-model="userKey"
-        placeholder="uXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX"
-      />
-    </div>
+      <div class="field">
+        <label class="label" for="n-app-token">App token</label>
+        <div class="control">
+          <input
+            id="n-app-token"
+            class="input"
+            type="text"
+            v-model="appToken"
+            placeholder="aXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX"
+            autocomplete="off"
+            spellcheck="false"
+          />
+        </div>
+      </div>
 
-    <div class="form-actions">
-      <button class="btn btn-primary" @click="save">Save</button>
-      <button class="btn btn-secondary" @click="sendTest">Send test</button>
+      <div class="field">
+        <label class="label" for="n-user-key">User key</label>
+        <div class="control">
+          <input
+            id="n-user-key"
+            class="input"
+            type="text"
+            v-model="userKey"
+            placeholder="uXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX"
+            autocomplete="off"
+            spellcheck="false"
+          />
+        </div>
+      </div>
+    </fieldset>
+
+    <div class="field is-grouped mt-5">
+      <div class="control">
+        <button class="button is-link" @click="save">Save</button>
+      </div>
+      <div class="control">
+        <button class="button is-light" @click="sendTest">Send test notification</button>
+      </div>
     </div>
   </div>
 </template>
