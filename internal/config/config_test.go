@@ -254,6 +254,36 @@ write_manifest: true
 	}
 }
 
+func TestMirrorRootRoundTrip(t *testing.T) {
+	const mirrorYAML = `watch_paths:
+  - /volumeUSB1/usbshare
+import_root: /volume1/photos
+mirror_root: /volume2/mirror
+file_extensions:
+  - .jpg
+`
+	src := writeTempYAML(t, mirrorYAML)
+	cfg, err := config.Load(src)
+	if err != nil {
+		t.Fatalf("Load: %v", err)
+	}
+	if cfg.MirrorRoot != "/volume2/mirror" {
+		t.Errorf("MirrorRoot = %q, want %q", cfg.MirrorRoot, "/volume2/mirror")
+	}
+
+	dst := filepath.Join(t.TempDir(), "config-mirror-out.yaml")
+	if err := cfg.Save(dst); err != nil {
+		t.Fatalf("Save: %v", err)
+	}
+	cfg2, err := config.Load(dst)
+	if err != nil {
+		t.Fatalf("Load after Save: %v", err)
+	}
+	if cfg2.MirrorRoot != cfg.MirrorRoot {
+		t.Errorf("round-trip MirrorRoot = %q, want %q", cfg2.MirrorRoot, cfg.MirrorRoot)
+	}
+}
+
 func TestLoadValidGlobalDestinationTemplate(t *testing.T) {
 	const yaml = `watch_paths:
   - /v

@@ -228,12 +228,13 @@ func handleMount(
 		MountPath: evt.MountPoint,
 		Time:      time.Now(),
 		Stats: &notify.ImportStats{
-			Total:       res.Total,
-			Imported:    res.Imported,
-			Skipped:     res.Skipped,
-			Failed:      res.Failed,
-			BytesCopied: res.BytesCopied,
-			Duration:    elapsed,
+			Total:        res.Total,
+			Imported:     res.Imported,
+			Skipped:      res.Skipped,
+			Failed:       res.Failed,
+			MirrorFailed: res.MirrorFailed,
+			BytesCopied:  res.BytesCopied,
+			Duration:     elapsed,
 		},
 	})
 
@@ -258,6 +259,7 @@ func handleMount(
 		"imported", res.Imported,
 		"skipped", res.Skipped,
 		"failed", res.Failed,
+		"mirror_failed", res.MirrorFailed,
 		"bytes", res.BytesCopied,
 		"duration", fmt.Sprintf("%.1fs", elapsed.Seconds()),
 	)
