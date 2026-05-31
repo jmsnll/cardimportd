@@ -47,7 +47,9 @@ _spk:
 	 tar czf $$tmpdir/package.tgz -C $$target . && \
 	 cp -r package/scripts $$tmpdir/ && \
 	 cp -r package/conf    $$tmpdir/ && \
-	 sed "s/arch=\"x86_64\"/arch=\"$(ARCH)\"/" package/INFO > $$tmpdir/INFO && \
+	 grep -v '^#' package/INFO | \
+	 sed -e "s/arch=\"x86_64\"/arch=\"$(ARCH)\"/" \
+	     -e "s/version=\"[^\"]*\"/version=\"$(SPK_VERSION)\"/" > $$tmpdir/INFO && \
 	 chmod +x $$tmpdir/scripts/* && \
 	 tar czf $(BINARY)-$(SPK_VERSION)-$(ARCH).spk -C $$tmpdir . && \
 	 rm -rf $$tmpdir && \
