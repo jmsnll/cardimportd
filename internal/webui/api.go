@@ -305,6 +305,16 @@ func (h *apiHandler) handleFS(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, fsResponse{Path: path, Entries: names}, http.StatusOK)
 }
 
+// -- /healthz -----------------------------------------------------------------
+
+func (h *apiHandler) handleHealth(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodGet {
+		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+	writeJSON(w, map[string]string{"status": "ok"}, http.StatusOK)
+}
+
 // -- helpers ------------------------------------------------------------------
 
 func copyConfig(src *config.Config) *config.Config {
@@ -315,5 +325,6 @@ func copyConfig(src *config.Config) *config.Config {
 	}
 	dst.WatchPaths = append([]string(nil), src.WatchPaths...)
 	dst.FileExtensions = append([]string(nil), src.FileExtensions...)
+	dst.WebUI = src.WebUI
 	return &dst
 }

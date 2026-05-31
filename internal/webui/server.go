@@ -55,10 +55,40 @@ func (s *Server) Start(ctx context.Context) error {
 	mux.HandleFunc("/api/events", api.handleEvents)
 	mux.HandleFunc("/api/fs", api.handleFS)
 
-	addr := net.JoinHostPort("0.0.0.0", strconv.Itoa(s.port))
+	// Health endpoint — exempt from auth.
+	mux.HandleFunc("/healthz", api.handleHealth)
+
+	// Resolve bind address from config, defaulting to 0.0.0.0.
+	webuiCfg := s.acc.Get().WebUI
+	bindAddr := webuiCfg.BindAddress
+	if bindAddr == "" {
+		bindAddr = "0.0.0.0"
+	}
+
+	// Wrap mux with basic auth middleware when credentials are configured.
+	var handler http.Handler = mux
+	if webuiCfg.Username != "" && webuiCfg.Password != "" {
+		username := webuiCfg.Username
+		password := webuiCfg.Password
+		handler = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			if r.URL.Path == "/healthz" {
+				mux.ServeHTTP(w, r)
+				return
+			}
+			u, p, ok := r.BasicAuth()
+			if !ok || u != username || p != password {
+				w.Header().Set("WWW-Authenticate", `Basic realm="cardimportd"`)
+				http.Error(w, "unauthorized", http.StatusUnauthorized)
+				return
+			}
+			mux.ServeHTTP(w, r)
+		})
+	}
+
+	addr := net.JoinHostPort(bindAddr, strconv.Itoa(s.port))
 	srv := &http.Server{
 		Addr:         addr,
-		Handler:      mux,
+		Handler:      handler,
 		ReadTimeout:  10 * time.Second,
 		WriteTimeout: 10 * time.Second,
 	}

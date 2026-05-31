@@ -77,6 +77,15 @@ type NotificationConfig struct {
 	Webhook  *WebhookConfig  `yaml:"webhook,omitempty"  json:"webhook,omitempty"`
 }
 
+// WebUIConfig holds optional settings for the embedded HTTP management server.
+// When Username and Password are both non-empty, HTTP basic auth is required on
+// all routes (except /healthz). BindAddress defaults to "0.0.0.0" if empty.
+type WebUIConfig struct {
+	BindAddress string `yaml:"bind_address,omitempty" json:"bind_address,omitempty"`
+	Username    string `yaml:"username,omitempty"     json:"username,omitempty"`
+	Password    string `yaml:"password,omitempty"     json:"password,omitempty"`
+}
+
 // Config is the top-level configuration structure for cardimportd.
 type Config struct {
 	WatchPaths          []string             `yaml:"watch_paths"      json:"watch_paths"`
@@ -86,6 +95,7 @@ type Config struct {
 	Cards               map[string]CardEntry `yaml:"cards"            json:"cards"`
 	FileExtensions      []string             `yaml:"file_extensions"  json:"file_extensions"`
 	LogPath             string               `yaml:"log_path"         json:"log_path"`
+	WebUI               WebUIConfig          `yaml:"webui,omitempty"  json:"webui,omitempty"`
 	Notifications       NotificationConfig   `yaml:"notifications,omitempty" json:"notifications,omitempty"`
 	PostImportHook      string               `yaml:"post_import_hook,omitempty" json:"post_import_hook,omitempty"`
 	WriteManifest       bool                 `yaml:"write_manifest,omitempty" json:"write_manifest,omitempty"`
