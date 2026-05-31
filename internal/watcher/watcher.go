@@ -45,21 +45,28 @@ type mountEntry struct {
 	fsType     string
 }
 
+// usbMountPrefix is the fallback prefix used when no watchPrefixes are configured.
 const usbMountPrefix = "/volumeUSB"
 
 // Watcher polls a mounts file and streams MountEvents for USB volumes.
 type Watcher struct {
 	procMountsPath string
 	interval       time.Duration
+	watchPrefixes  []string
 	events         chan MountEvent
 }
 
 // New creates a Watcher that polls procMountsPath every interval.
-// Pass "/proc/mounts" and 2*time.Second in production.
-func New(procMountsPath string, interval time.Duration) *Watcher {
+// watchPrefixes is the list of mount-point prefixes to monitor; if empty it
+// defaults to ["/volumeUSB"]. Pass "/proc/mounts" and 2*time.Second in production.
+func New(procMountsPath string, interval time.Duration, watchPrefixes ...string) *Watcher {
+	if len(watchPrefixes) == 0 {
+		watchPrefixes = []string{usbMountPrefix}
+	}
 	return &Watcher{
 		procMountsPath: procMountsPath,
 		interval:       interval,
+		watchPrefixes:  watchPrefixes,
 		events:         make(chan MountEvent, 8),
 	}
 }
@@ -120,7 +127,7 @@ func (w *Watcher) readUSBMounts() (map[string]mountEntry, error) {
 		if !ok {
 			continue
 		}
-		if !strings.HasPrefix(entry.mountPoint, usbMountPrefix) {
+		if !w.isWatched(entry.mountPoint) {
 			continue
 		}
 		result[entry.mountPoint] = entry
@@ -150,6 +157,15 @@ func (w *Watcher) diff(prev, curr map[string]mountEntry) {
 			w.send(MountEvent{MountPoint: mp, Device: entry.device, FSType: entry.fsType, Action: Unmounted})
 		}
 	}
+}
+
+func (w *Watcher) isWatched(mp string) bool {
+	for _, prefix := range w.watchPrefixes {
+		if strings.HasPrefix(mp, prefix) {
+			return true
+		}
+	}
+	return false
 }
 
 func (w *Watcher) send(evt MountEvent) {

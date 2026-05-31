@@ -21,8 +21,10 @@ import (
 )
 
 func main() {
-	cfgPath   := flag.String("config", "/usr/local/etc/cardimportd/config.yaml", "path to config.yaml")
-	webuiPort := flag.Int("webui-port", 8085, "web management UI port (0 to disable)")
+	cfgPath      := flag.String("config", "/usr/local/etc/cardimportd/config.yaml", "path to config.yaml")
+	webuiPort    := flag.Int("webui-port", 8085, "web management UI port (0 to disable)")
+	procMounts   := flag.String("proc-mounts", "/proc/mounts", "mounts file to poll")
+	pollInterval := flag.Duration("poll-interval", 2*time.Second, "watcher poll interval")
 	flag.Parse()
 
 	logger := slog.New(slog.NewJSONHandler(os.Stdout, &slog.HandlerOptions{Level: slog.LevelInfo}))
@@ -64,7 +66,7 @@ func main() {
 		return imp
 	}
 
-	w := watcher.New("/proc/mounts", 2*time.Second)
+	w := watcher.New(*procMounts, *pollInterval, cfg.WatchPaths...)
 
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
