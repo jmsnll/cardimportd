@@ -6,6 +6,7 @@ import (
 	"log/slog"
 	"os"
 	"path/filepath"
+	"text/template"
 	"time"
 
 	"gopkg.in/yaml.v3"
@@ -36,10 +37,11 @@ var defaultFileExtensions = []string{
 
 // CardEntry holds the per-card configuration keyed by filesystem UUID.
 type CardEntry struct {
-	Owner     string     `yaml:"owner"                json:"owner"`
-	Label     string     `yaml:"label,omitempty"      json:"label,omitempty"`
-	Status    CardStatus `yaml:"status"               json:"status"`
-	FirstSeen *time.Time `yaml:"first_seen,omitempty" json:"first_seen,omitempty"`
+	Owner               string     `yaml:"owner"                json:"owner"`
+	Label               string     `yaml:"label,omitempty"      json:"label,omitempty"`
+	Status              CardStatus `yaml:"status"               json:"status"`
+	FirstSeen           *time.Time `yaml:"first_seen,omitempty" json:"first_seen,omitempty"`
+	DestinationTemplate string     `yaml:"destination_template,omitempty" json:"destination_template,omitempty"`
 }
 
 
@@ -77,15 +79,16 @@ type NotificationConfig struct {
 
 // Config is the top-level configuration structure for cardimportd.
 type Config struct {
-	WatchPaths      []string             `yaml:"watch_paths"      json:"watch_paths"`
-	ImportRoot      string               `yaml:"import_root"      json:"import_root"`
-	MinFreeGB       float64              `yaml:"min_free_gb,omitempty" json:"min_free_gb,omitempty"`
-	Cards           map[string]CardEntry `yaml:"cards"            json:"cards"`
-	FileExtensions  []string             `yaml:"file_extensions"  json:"file_extensions"`
-	LogPath         string               `yaml:"log_path"         json:"log_path"`
-	Notifications   NotificationConfig   `yaml:"notifications,omitempty" json:"notifications,omitempty"`
-	PostImportHook  string               `yaml:"post_import_hook,omitempty" json:"post_import_hook,omitempty"`
-	WriteManifest   bool                 `yaml:"write_manifest,omitempty" json:"write_manifest,omitempty"`
+	WatchPaths          []string             `yaml:"watch_paths"      json:"watch_paths"`
+	ImportRoot          string               `yaml:"import_root"      json:"import_root"`
+	MinFreeGB           float64              `yaml:"min_free_gb,omitempty" json:"min_free_gb,omitempty"`
+	Cards               map[string]CardEntry `yaml:"cards"            json:"cards"`
+	FileExtensions      []string             `yaml:"file_extensions"  json:"file_extensions"`
+	LogPath             string               `yaml:"log_path"         json:"log_path"`
+	Notifications       NotificationConfig   `yaml:"notifications,omitempty" json:"notifications,omitempty"`
+	PostImportHook      string               `yaml:"post_import_hook,omitempty" json:"post_import_hook,omitempty"`
+	WriteManifest       bool                 `yaml:"write_manifest,omitempty" json:"write_manifest,omitempty"`
+	DestinationTemplate string               `yaml:"destination_template,omitempty" json:"destination_template,omitempty"`
 }
 
 // Default returns a minimal working configuration seeded with Synology-typical paths.
@@ -121,7 +124,26 @@ func Load(path string) (*Config, error) {
 	if cfg.Cards == nil {
 		cfg.Cards = make(map[string]CardEntry)
 	}
+	if err := validateDestTemplates(&cfg); err != nil {
+		return nil, err
+	}
 	return &cfg, nil
+}
+
+func validateDestTemplates(cfg *Config) error {
+	if cfg.DestinationTemplate != "" {
+		if _, err := template.New("g").Parse(cfg.DestinationTemplate); err != nil {
+			return fmt.Errorf("config: invalid destination_template: %w", err)
+		}
+	}
+	for uuid, card := range cfg.Cards {
+		if card.DestinationTemplate != "" {
+			if _, err := template.New(uuid).Parse(card.DestinationTemplate); err != nil {
+				return fmt.Errorf("config: invalid destination_template for %q: %w", uuid, err)
+			}
+		}
+	}
+	return nil
 }
 
 // Save atomically writes cfg to path via a .tmp sibling + os.Rename.

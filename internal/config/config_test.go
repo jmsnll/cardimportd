@@ -254,6 +254,74 @@ write_manifest: true
 	}
 }
 
+func TestLoadValidGlobalDestinationTemplate(t *testing.T) {
+	const yaml = `watch_paths:
+  - /v
+import_root: /v
+destination_template: "{{ .Owner }}/{{ .Year }}/{{ .Month }}"
+`
+	src := writeTempYAML(t, yaml)
+	cfg, err := config.Load(src)
+	if err != nil {
+		t.Fatalf("Load: %v", err)
+	}
+	if cfg.DestinationTemplate == "" {
+		t.Error("DestinationTemplate not loaded")
+	}
+}
+
+func TestLoadInvalidGlobalDestinationTemplate(t *testing.T) {
+	const yaml = `watch_paths:
+  - /v
+import_root: /v
+destination_template: "{{ .Bad"
+`
+	src := writeTempYAML(t, yaml)
+	if _, err := config.Load(src); err == nil {
+		t.Fatal("expected error for invalid destination_template, got nil")
+	}
+}
+
+func TestLoadValidCardDestinationTemplate(t *testing.T) {
+	const yaml = `watch_paths:
+  - /v
+import_root: /v
+cards:
+  AABB-CCDD:
+    owner: James
+    status: active
+    destination_template: "{{ .Owner }}/{{ .Year }}"
+`
+	src := writeTempYAML(t, yaml)
+	cfg, err := config.Load(src)
+	if err != nil {
+		t.Fatalf("Load: %v", err)
+	}
+	card, ok := cfg.LookupCard("AABB-CCDD")
+	if !ok {
+		t.Fatal("card not found")
+	}
+	if card.DestinationTemplate == "" {
+		t.Error("card DestinationTemplate not loaded")
+	}
+}
+
+func TestLoadInvalidCardDestinationTemplate(t *testing.T) {
+	const yaml = `watch_paths:
+  - /v
+import_root: /v
+cards:
+  AABB-CCDD:
+    owner: James
+    status: active
+    destination_template: "{{ .Bad"
+`
+	src := writeTempYAML(t, yaml)
+	if _, err := config.Load(src); err == nil {
+		t.Fatal("expected error for invalid card destination_template, got nil")
+	}
+}
+
 func TestSaveNoTmpFileLeftBehind(t *testing.T) {
 	src := writeTempYAML(t, fixtureYAML)
 	cfg, _ := config.Load(src)
