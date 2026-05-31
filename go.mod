@@ -1,6 +1,6 @@
 module github.com/jmsnll/cardimportd
 
-go 1.22.0
+go 1.26.2
 
 require (
 	github.com/dsoprea/go-exif/v3 v3.0.0-20221012082141-d21ac8e2de85
