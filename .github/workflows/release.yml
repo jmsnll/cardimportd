@@ -98,35 +98,19 @@ jobs:
               "https://github.com/jmsnll/cardimportd/releases/download/${TAG}/cardimportd-${SPK_VER}-${ARCH}.spk"
           done
 
+      - uses: actions/checkout@v4
+
       - name: Generate packages.json
         run: |
           TAG="${GITHUB_REF_NAME}"
           SEMVER="${TAG#v}"
           SPK_VER="${SEMVER}-0001"
-          python3 -c "
-import json, sys
-base, spk_ver = sys.argv[1], sys.argv[2]
-archs = sys.argv[3:]
-packages = [{
-    'package': 'cardimportd',
-    'version': spk_ver,
-    'dname': 'Card Importer',
-    'desc': 'Watches for SD/CFExpress card insertions and imports photos/videos.',
-    'arch': [arch],
-    'distributor': 'jmsnll',
-    'link': f'{base}/cardimportd-{spk_ver}-{arch}.spk',
-    'qinst': True,
-    'qupgrade': True,
-    'qstart': True,
-} for arch in archs]
-with open('/tmp/pages/packages.json', 'w') as f:
-    json.dump({'packages': packages}, f, indent=2)
-    f.write('\n')
-" \
+          python3 scripts/gen-feed.py \
             "https://jmsnll.github.io/cardimportd" \
             "${SPK_VER}" \
             apollolake geminilake r1000 v1000 denverton broadwell broadwellnk \
-            armada37xx rtd1296 rtd1619b
+            armada37xx rtd1296 rtd1619b \
+            > /tmp/pages/packages.json
 
       - name: Deploy to gh-pages
         uses: peaceiris/actions-gh-pages@v4
