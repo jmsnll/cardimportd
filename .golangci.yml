@@ -12,35 +12,44 @@ linters:
     - gocritic       # style and correctness diagnostics
 
   settings:
+    errcheck:
+      exclude-functions:
+        # Drain + close on HTTP response bodies — errors are unrecoverable
+        - (io.ReadCloser).Close
+        - (*os.File).Close
+        - io.Copy
+        # Writing to an http.ResponseWriter (SSE streams) — errors mean client disconnected
+        - fmt.Fprintf
+        - fmt.Fprintf[*http.ResponseWriter]
     gosec:
       excludes:
-        # G204: subprocess launched with variable — intentional for post_import_hook
+        # G204: subprocess via variable — intentional for post_import_hook
         - G204
-        # G304: file inclusion via variable — all paths come from validated config/CLI args
+        # G304: file path from variable — all paths come from validated config/CLI
         - G304
-        # G115: integer overflow — all conversions are intentional bounded hardware values
+        # G115: integer overflow — all conversions are bounded hardware values
         - G115
-        # G301/G302: 0o755 dirs and 0o644 files are standard for an import daemon's data
+        # G301/G302: 0o755 dirs and 0o644 files are correct for a photo import daemon
         - G301
         - G302
-        # G118: context.Background in shutdown goroutine is intentional (request ctx is done)
+        # G118: context.Background in shutdown goroutine is intentional
         - G118
     gocritic:
       enabled-tags:
         - diagnostic
         - performance
       disabled-checks:
-        # hugeParam: fixing requires changing the Notifier interface across all impls
+        # hugeParam: changing Event/ProgressEvent to pointer receivers is a larger refactor
         - hugeParam
 
-  exclusions:
-    rules:
-      # Test files get a lighter touch
-      - path: _test\.go
-        linters:
-          - gosec
-          - errcheck
-          - gocritic
+exclusions:
+  rules:
+    # Test files get a lighter touch
+    - path: _test\.go
+      linters:
+        - gosec
+        - errcheck
+        - gocritic
 
 issues:
   max-same-issues: 0
