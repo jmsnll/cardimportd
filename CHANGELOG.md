@@ -1,5 +1,14 @@
 # Changelog
 
+## [0.13.3](https://github.com/jmsnll/cardimportd/compare/v0.13.2...v0.13.3) (2026-05-31)
+
+
+### Bug Fixes
+
+* add vite-env.d.ts to resolve TS2882 CSS side-effect import error ([540ac1f](https://github.com/jmsnll/cardimportd/commit/540ac1fb19bbc96c3b352a578aa5ac7fe62bc61d))
+* **ci:** commit static/.gitkeep so go:embed resolves without a UI build ([29028ff](https://github.com/jmsnll/cardimportd/commit/29028ff09e65ef42efcd0156500f6276689d6df2))
+* use all:static embed directive to include dot-files in CI ([7d8d2db](https://github.com/jmsnll/cardimportd/commit/7d8d2dba2768571c82af4db451a3c3c3b0593e9c))
+
 ## [0.13.2](https://github.com/jmsnll/cardimportd/compare/v0.13.1...v0.13.2) (2026-05-31)
 
 
