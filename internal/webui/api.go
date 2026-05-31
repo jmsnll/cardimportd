@@ -18,6 +18,7 @@ import (
 type apiHandler struct {
 	acc  ConfigAccessor
 	hist HistoryReader
+	bus  *EventBus
 }
 
 func writeJSON(w http.ResponseWriter, v any, status int) {
@@ -250,6 +251,41 @@ func (h *apiHandler) handleHistory(w http.ResponseWriter, r *http.Request) {
 		entries = []history.Entry{}
 	}
 	writeJSON(w, entries, http.StatusOK)
+}
+
+// -- /api/events --------------------------------------------------------------
+
+func (h *apiHandler) handleEvents(w http.ResponseWriter, r *http.Request) {
+	flusher, ok := w.(http.Flusher)
+	if !ok {
+		http.Error(w, "streaming not supported", http.StatusInternalServerError)
+		return
+	}
+	w.Header().Set("Content-Type", "text/event-stream")
+	w.Header().Set("Cache-Control", "no-cache")
+	w.Header().Set("Connection", "keep-alive")
+	w.Header().Set("X-Accel-Buffering", "no")
+	if h.bus == nil {
+		fmt.Fprintf(w, ": keep-alive\n\n")
+		flusher.Flush()
+		return
+	}
+	ch := h.bus.Subscribe()
+	defer h.bus.Unsubscribe(ch)
+	for {
+		select {
+		case <-r.Context().Done():
+			return
+		case evt, ok := <-ch:
+			if !ok {
+				return
+			}
+			if data, err := evt.Marshal(); err == nil {
+				fmt.Fprintf(w, "data: %s\n\n", data)
+				flusher.Flush()
+			}
+		}
+	}
 }
 
 // -- helpers ------------------------------------------------------------------

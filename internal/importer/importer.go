@@ -24,15 +24,23 @@ type Result struct {
 	BytesCopied  int64
 }
 
+const progressInterval = 10
+
 // Importer orchestrates the import of all media files from a mounted card.
 type Importer struct {
-	cfg      *config.Config
-	notifier notify.Notifier
+	cfg        *config.Config
+	notifier   notify.Notifier
+	onProgress func(imported, skipped, failed int, bytesCopied int64)
 }
 
 // New returns an Importer wired to cfg and notifier.
 func New(cfg *config.Config, notifier notify.Notifier) *Importer {
 	return &Importer{cfg: cfg, notifier: notifier}
+}
+
+// SetProgressCallback registers a function called every progressInterval files.
+func (imp *Importer) SetProgressCallback(fn func(imported, skipped, failed int, bytesCopied int64)) {
+	imp.onProgress = fn
 }
 
 // Import walks mountPath for supported files and imports them to the
@@ -99,6 +107,9 @@ func (imp *Importer) Import(ctx context.Context, owner, mountPath, cardUUID stri
 					entries = append(entries, manifestEntry{hash: hash, relPath: rel})
 				}
 			}
+		}
+		if imp.onProgress != nil && res.Total%progressInterval == 0 {
+			imp.onProgress(res.Imported, res.Skipped, res.Failed, res.BytesCopied)
 		}
 		return nil
 	})

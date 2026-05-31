@@ -72,10 +72,9 @@ func main() {
 	}
 	notifier := notify.NewMultiNotifier(notifiers...)
 
-	// mu guards cfg and imp; both are replaced atomically on config changes.
+	// mu guards cfg; replaced atomically on config changes.
 	var mu sync.RWMutex
 	cfg := initialCfg
-	imp := importer.New(cfg, notifier)
 
 	getCfg := func() *config.Config {
 		mu.RLock()
@@ -95,13 +94,9 @@ func main() {
 		mu.Lock()
 		defer mu.Unlock()
 		cfg = c
-		imp = importer.New(c, notifier)
 	}
-	getImp := func() *importer.Importer {
-		mu.RLock()
-		defer mu.RUnlock()
-		return imp
-	}
+
+	bus := webui.NewEventBus(32)
 
 	w := watcher.New(*procMounts, *pollInterval, cfg.WatchPaths...)
 
@@ -115,7 +110,7 @@ func main() {
 			Path: *cfgPath,
 		}
 		go func() {
-			srv := webui.New(acc, hist, *webuiPort)
+			srv := webui.New(acc, hist, bus, *webuiPort)
 			if err := srv.Start(ctx); err != nil {
 				slog.Error("webui: stopped", "error", err)
 			}
@@ -155,7 +150,7 @@ func main() {
 			if evt.Action != watcher.Mounted {
 				continue
 			}
-			go handleMount(ctx, getCfg, getImp, notifier, setCfg, hist, evt, *cfgPath)
+			go handleMount(ctx, getCfg, notifier, setCfg, hist, bus, evt, *cfgPath)
 		}
 	}
 }
@@ -163,15 +158,14 @@ func main() {
 func handleMount(
 	ctx context.Context,
 	getCfg func() *config.Config,
-	getImp func() *importer.Importer,
 	n notify.Notifier,
 	setCfg func(*config.Config),
 	hist *history.Log,
+	bus *webui.EventBus,
 	evt watcher.MountEvent,
 	cfgPath string,
 ) {
 	cfg := getCfg()
-	imp := getImp()
 	slog.Info("mount detected", "mount_point", evt.MountPoint, "device", evt.Device)
 
 	uuid, err := cardUUID(evt.Device)
@@ -216,8 +210,22 @@ func handleMount(
 		slog.Warn("notify: delivery failed", "kind", string(notify.KindImportStarted), "error", err)
 	}
 
+	imp := importer.New(getCfg(), n)
+	bus.Publish(webui.ProgressEvent{Kind: webui.ProgressKindStarted, Owner: entry.Owner, CardUUID: uuid})
+	imp.SetProgressCallback(func(imported, skipped, failed int, bytesCopied int64) {
+		bus.Publish(webui.ProgressEvent{
+			Kind:        webui.ProgressKindProgress,
+			Owner:       entry.Owner,
+			CardUUID:    uuid,
+			Imported:    imported,
+			Skipped:     skipped,
+			Failed:      failed,
+			BytesCopied: bytesCopied,
+		})
+	})
 	start := time.Now()
 	res, err := imp.Import(ctx, entry.Owner, evt.MountPoint, uuid)
+	imp.SetProgressCallback(nil)
 	elapsed := time.Since(start)
 
 	if err != nil {
@@ -232,10 +240,11 @@ func handleMount(
 		}); notifyErr != nil {
 			slog.Warn("notify: delivery failed", "kind", string(notify.KindImportFailed), "error", notifyErr)
 		}
+		bus.Publish(webui.ProgressEvent{Kind: webui.ProgressKindFailed, Owner: entry.Owner, CardUUID: uuid, Error: err.Error()})
 		return
 	}
 
-	if err := n.Notify(ctx, notify.Event{
+	if notifyErr := n.Notify(ctx, notify.Event{
 		Kind:      notify.KindImportCompleted,
 		CardUUID:  uuid,
 		Owner:     entry.Owner,
@@ -251,9 +260,20 @@ func handleMount(
 			BytesCopied:  res.BytesCopied,
 			Duration:     elapsed,
 		},
-	}); err != nil {
-		slog.Warn("notify: delivery failed", "kind", string(notify.KindImportCompleted), "error", err)
+	}); notifyErr != nil {
+		slog.Warn("notify: delivery failed", "kind", string(notify.KindImportCompleted), "error", notifyErr)
 	}
+
+	bus.Publish(webui.ProgressEvent{
+		Kind:        webui.ProgressKindCompleted,
+		Owner:       entry.Owner,
+		CardUUID:    uuid,
+		Total:       res.Total,
+		Imported:    res.Imported,
+		Skipped:     res.Skipped,
+		Failed:      res.Failed,
+		BytesCopied: res.BytesCopied,
+	})
 
 	if err := hist.Append(history.Entry{
 		UUID:        uuid,
