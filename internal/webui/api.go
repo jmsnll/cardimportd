@@ -59,6 +59,7 @@ func (h *apiHandler) postConfig(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	r.Body = http.MaxBytesReader(w, r.Body, 1<<20) // 1 MiB
 	var newCfg config.Config
 	if err := json.NewDecoder(r.Body).Decode(&newCfg); err != nil {
 		apiError(w, fmt.Sprintf("invalid body: %s", err), http.StatusBadRequest)
@@ -122,6 +123,7 @@ func (h *apiHandler) updateCard(w http.ResponseWriter, r *http.Request, uuid str
 	if !requireJSON(w, r) {
 		return
 	}
+	r.Body = http.MaxBytesReader(w, r.Body, 1<<20) // 1 MiB
 	var req cardUpdateRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		apiError(w, fmt.Sprintf("invalid body: %s", err), http.StatusBadRequest)
