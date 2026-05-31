@@ -1,4 +1,4 @@
-.PHONY: build test lint vet build-dsm-amd64 build-dsm-arm64 clean
+.PHONY: build test bench lint vet build-dsm-amd64 build-dsm-arm64 clean
 
 BINARY  := cardimportd
 CMD     := ./cmd/$(BINARY)
@@ -8,6 +8,16 @@ build:
 
 test:
 	go test -race ./...
+
+# Run benchmarks and save results to benchmarks/<version>.txt.
+# VERSION can be overridden: make bench VERSION=v1.2.3
+VERSION ?= $(shell git describe --tags --always --dirty 2>/dev/null || echo "dev")
+bench:
+	@mkdir -p benchmarks
+	go test -bench=. -benchmem -count=5 -benchtime=1s \
+	    ./internal/meta/ ./internal/importer/ \
+	    | tee benchmarks/$(VERSION).txt
+	@echo "Results saved to benchmarks/$(VERSION).txt"
 
 vet:
 	go vet ./...
