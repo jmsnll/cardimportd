@@ -55,6 +55,7 @@ _spk:
 	 cp config.example.yaml $$target/config.example.yaml && \
 	 chmod +x $$target/$(BINARY) && \
 	 tar czf $$tmpdir/package.tgz -C $$target . && \
+	 rm -rf $$target && \
 	 cp -r package/scripts $$tmpdir/ && \
 	 cp -r package/conf    $$tmpdir/ && \
 	 grep -v '^#' package/INFO | \
