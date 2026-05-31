@@ -38,8 +38,9 @@ export function deleteCard(uuid: string): Promise<{ ok: boolean }> {
   })
 }
 
-export function testNotification(): Promise<{ ok: boolean }> {
-  return apiFetch<{ ok: boolean }>('/api/notify/test', {
+export function testNotification(adapter?: string): Promise<{ ok: boolean }> {
+  const qs = adapter ? `?adapter=${encodeURIComponent(adapter)}` : ''
+  return apiFetch<{ ok: boolean }>(`/api/notify/test${qs}`, {
     method: 'POST',
   })
 }

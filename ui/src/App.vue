@@ -4,6 +4,18 @@
       <span class="navbar-item has-text-weight-semibold">Card Importer</span>
       <span class="navbar-item is-sub">cardimportd</span>
     </div>
+    <div class="navbar-end" v-if="activeImport" aria-live="polite" aria-label="Import progress">
+      <div class="navbar-item">
+        <span class="tag is-light mr-2" v-if="activeImport.event === 'import_completed'">✓ Done</span>
+        <span class="tag is-warning mr-2" v-else-if="activeImport.event === 'import_failed'">✗ Failed</span>
+        <span class="tag is-info mr-2" v-else>Importing…</span>
+        <span class="is-size-7 has-text-white">
+          <template v-if="activeImport.owner">{{ activeImport.owner }} · </template>
+          {{ activeImport.imported }}/{{ activeImport.total }} files
+          <template v-if="activeImport.bytes_copied"> · {{ formatBytes(activeImport.bytes_copied) }}</template>
+        </span>
+      </div>
+    </div>
   </nav>
 
   <div class="tabs is-brand mb-0" role="tablist" aria-label="Main navigation" @keydown="onTabKeydown">
@@ -91,12 +103,15 @@
 
 <script setup lang="ts">
 import { ref, provide, onMounted } from 'vue'
+import { useEventStream } from './composables/useEventStream'
 import { getConfig } from './api'
 import type { Config } from './types'
 import Toast from './components/Toast.vue'
 import CardsView from './views/CardsView.vue'
 import SettingsView from './views/SettingsView.vue'
 import NotificationsView from './views/NotificationsView.vue'
+
+const { activeImport } = useEventStream()
 
 type Tab = 'cards' | 'settings' | 'notifications'
 const tabs: Tab[] = ['cards', 'settings', 'notifications']
@@ -136,6 +151,13 @@ function onTabKeydown(e: KeyboardEvent) {
 function focusTab(tab: Tab) {
   const el = document.getElementById(`tab-${tab}`)
   el?.focus()
+}
+
+function formatBytes(bytes: number): string {
+  if (bytes < 1024) return `${bytes} B`
+  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`
+  if (bytes < 1024 * 1024 * 1024) return `${(bytes / (1024 * 1024)).toFixed(1)} MB`
+  return `${(bytes / (1024 * 1024 * 1024)).toFixed(2)} GB`
 }
 
 onMounted(async () => {
