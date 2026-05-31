@@ -79,6 +79,11 @@ func (imp *Importer) Import(ctx context.Context, owner, mountPath string) (Resul
 		return nil
 	})
 
+	if err == nil && imp.cfg.PostImportHook != "" {
+		if hookErr := runHook(imp.cfg.PostImportHook, owner, mountPath, res); hookErr != nil {
+			slog.Warn("post-import hook failed", "error", hookErr)
+		}
+	}
 	return res, err
 }
 
