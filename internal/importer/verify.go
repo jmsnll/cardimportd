@@ -18,7 +18,7 @@ func copyVerified(src, dst string) (n int64, sha256hex string, err error) {
 	if err != nil {
 		return 0, "", fmt.Errorf("open src %q: %w", src, err)
 	}
-	defer srcFile.Close()
+	defer func() { _ = srcFile.Close() }()
 
 	dstFile, err := os.OpenFile(tmp, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, 0o644)
 	if err != nil {

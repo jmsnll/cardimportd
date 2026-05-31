@@ -225,7 +225,7 @@ func handleMount(
 	elapsed := time.Since(start)
 
 	if importErr != nil {
-		n.Notify(ctx, notify.Event{
+		_ = n.Notify(ctx, notify.Event{
 			Kind:      notify.KindImportFailed,
 			CardUUID:  uuid,
 			Owner:     entry.Owner,

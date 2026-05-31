@@ -139,7 +139,7 @@ func (w *Watcher) readUSBMounts() (map[string]mountEntry, error) {
 	if err != nil {
 		return nil, fmt.Errorf("open %s: %w", w.procMountsPath, err)
 	}
-	defer f.Close()
+	defer func() { _ = f.Close() }()
 
 	result := make(map[string]mountEntry)
 	scanner := bufio.NewScanner(f)

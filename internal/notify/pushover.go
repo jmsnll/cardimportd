@@ -51,8 +51,8 @@ func (p *pushoverNotifier) Notify(ctx context.Context, event Event) error {
 	if err != nil {
 		return fmt.Errorf("pushover: send: %w", err)
 	}
-	defer resp.Body.Close()
-	io.Copy(io.Discard, resp.Body)
+	defer func() { _ = resp.Body.Close() }()
+	_, _ = io.Copy(io.Discard, resp.Body)
 
 	if resp.StatusCode != http.StatusOK {
 		return fmt.Errorf("pushover: unexpected status %d", resp.StatusCode)

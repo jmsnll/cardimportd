@@ -74,7 +74,7 @@ func extractEXIFFromFile(path string) (FileMeta, bool) {
 	if err != nil {
 		return FileMeta{}, false
 	}
-	defer f.Close()
+	defer func() { _ = f.Close() }()
 
 	data, err := io.ReadAll(f)
 	if err != nil {

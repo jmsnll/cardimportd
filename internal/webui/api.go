@@ -217,7 +217,7 @@ func (h *apiHandler) handleNotifyTest(w http.ResponseWriter, r *http.Request) {
 		Time:   time.Now().UTC(),
 	}
 	if err := n.Notify(context.Background(), ev); err != nil {
-		slog.Error("webui: notify test", "adapter", adapter, "err", err)
+		slog.Error("webui: notify test", "adapter", adapter, "err", err) //nolint:gosec // adapter is validated via switch before reaching this line
 		apiError(w, fmt.Sprintf("notification failed: %s", err), http.StatusInternalServerError)
 		return
 	}
@@ -237,7 +237,7 @@ func (h *apiHandler) handleEvents(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Connection", "keep-alive")
 	w.Header().Set("X-Accel-Buffering", "no")
 	if h.bus == nil {
-		fmt.Fprintf(w, ": keep-alive\n\n")
+		_, _ = fmt.Fprintf(w, ": keep-alive\n\n")
 		flusher.Flush()
 		return
 	}
@@ -252,7 +252,7 @@ func (h *apiHandler) handleEvents(w http.ResponseWriter, r *http.Request) {
 				return
 			}
 			if data, err := evt.Marshal(); err == nil {
-				fmt.Fprintf(w, "data: %s\n\n", data)
+				_, _ = fmt.Fprintf(w, "data: %s\n\n", data)
 				flusher.Flush()
 			}
 		}

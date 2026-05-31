@@ -45,8 +45,8 @@ func (n *ntfyNotifier) Notify(ctx context.Context, event Event) error {
 	if err != nil {
 		return fmt.Errorf("ntfy: send: %w", err)
 	}
-	defer resp.Body.Close()
-	io.Copy(io.Discard, resp.Body)
+	defer func() { _ = resp.Body.Close() }()
+	_, _ = io.Copy(io.Discard, resp.Body)
 
 	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
 		return fmt.Errorf("ntfy: unexpected status %d", resp.StatusCode)

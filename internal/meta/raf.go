@@ -30,7 +30,7 @@ func extractRAFMeta(path string) (FileMeta, bool) {
 	if err != nil {
 		return FileMeta{}, false
 	}
-	defer f.Close()
+	defer func() { _ = f.Close() }()
 
 	header := make([]byte, rafHeaderSize)
 	if _, err := io.ReadFull(f, header); err != nil {

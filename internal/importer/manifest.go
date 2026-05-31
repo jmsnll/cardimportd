@@ -19,7 +19,7 @@ func writeManifest(path string, entries []manifestEntry) error {
 	}
 	w := bufio.NewWriter(f)
 	for _, e := range entries {
-		fmt.Fprintf(w, "%s  %s\n", e.hash, e.relPath)
+		_, _ = fmt.Fprintf(w, "%s  %s\n", e.hash, e.relPath)
 	}
 	flushErr := w.Flush()
 	closeErr := f.Close()

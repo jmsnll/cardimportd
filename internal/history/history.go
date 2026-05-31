@@ -45,7 +45,9 @@ func (l *Log) Append(entry Entry) error {
 	}
 	line, _ := json.Marshal(entry)
 	_, err = fmt.Fprintf(f, "%s\n", line)
-	f.Close()
+	if cerr := f.Close(); cerr != nil && err == nil {
+		err = cerr
+	}
 	if err != nil {
 		return err
 	}
@@ -71,7 +73,7 @@ func (l *Log) trimIfNeeded() {
 		lines = append(lines, cp)
 	}
 	scanErr := scanner.Err()
-	f.Close()
+	_ = f.Close()
 	if scanErr != nil {
 		slog.Warn("history: trim scan failed", "error", scanErr)
 		return
@@ -88,18 +90,22 @@ func (l *Log) trimIfNeeded() {
 	}
 	w := bufio.NewWriter(out)
 	for _, line := range lines {
-		w.Write(line)
-		w.WriteByte('\n')
+		_, _ = w.Write(line)
+		_ = w.WriteByte('\n')
 	}
 	if err := w.Flush(); err != nil {
-		out.Close()
-		os.Remove(tmp)
+		_ = out.Close()
+		_ = os.Remove(tmp)
 		slog.Warn("history: trim write failed", "error", err)
 		return
 	}
-	out.Close()
+	if err := out.Close(); err != nil {
+		_ = os.Remove(tmp)
+		slog.Warn("history: trim close failed", "error", err)
+		return
+	}
 	if err := os.Rename(tmp, l.path); err != nil {
-		os.Remove(tmp)
+		_ = os.Remove(tmp)
 		slog.Warn("history: trim rename failed", "error", err)
 	}
 }
@@ -114,7 +120,7 @@ func (l *Log) Recent(n int) ([]Entry, error) {
 	if err != nil {
 		return nil, fmt.Errorf("history open: %w", err)
 	}
-	defer f.Close()
+	defer func() { _ = f.Close() }()
 	var entries []Entry
 	scanner := bufio.NewScanner(f)
 	for scanner.Scan() {
