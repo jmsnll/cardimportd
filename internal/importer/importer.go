@@ -38,6 +38,10 @@ func New(cfg *config.Config, notifier notify.Notifier) *Importer {
 func (imp *Importer) Import(ctx context.Context, owner, mountPath string) (Result, error) {
 	var res Result
 
+	if err := preflight(mountPath, imp.cfg.ImportRoot, imp.cfg.MinFreeGB); err != nil {
+		return Result{}, fmt.Errorf("preflight: %w", err)
+	}
+
 	ext := make(map[string]bool, len(imp.cfg.FileExtensions))
 	for _, e := range imp.cfg.FileExtensions {
 		ext[strings.ToLower(e)] = true

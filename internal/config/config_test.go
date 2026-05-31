@@ -208,6 +208,23 @@ func TestDefaultFileExtensionsExpanded(t *testing.T) {
 	}
 }
 
+func TestMinFreeGBRoundTrip(t *testing.T) {
+	const y = `watch_paths:
+  - /v
+import_root: /v
+min_free_gb: 50.0
+log_path: /v
+`
+	src := writeTempYAML(t, y)
+	cfg, err := config.Load(src)
+	if err != nil {
+		t.Fatalf("Load: %v", err)
+	}
+	if cfg.MinFreeGB != 50.0 {
+		t.Errorf("MinFreeGB = %v", cfg.MinFreeGB)
+	}
+}
+
 func TestSaveNoTmpFileLeftBehind(t *testing.T) {
 	src := writeTempYAML(t, fixtureYAML)
 	cfg, _ := config.Load(src)
