@@ -4,3 +4,4 @@ config.yaml
 *.spk
 .claude/
 ui/node_modules/
+ui/package-lock.json
