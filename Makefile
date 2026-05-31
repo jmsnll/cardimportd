@@ -1,9 +1,12 @@
-.PHONY: build test bench lint vet build-dsm-amd64 build-dsm-arm64 clean
+.PHONY: build test bench lint vet build-dsm-amd64 build-dsm-arm64 clean ui
 
 BINARY  := cardimportd
 CMD     := ./cmd/$(BINARY)
 
-build:
+ui:
+	cd ui && npm ci && npm run build
+
+build: ui
 	go build -o $(BINARY) $(CMD)
 
 test:
@@ -27,14 +30,15 @@ lint: vet
 # Cross-compile for Synology DSM.
 # Most modern Synology NAS (DS923+, DS1522+, etc.) use x86_64.
 # ARM-based models (DS220j, DS418, etc.) need arm64.
-build-dsm-amd64:
+build-dsm-amd64: ui
 	GOOS=linux GOARCH=amd64 go build -o $(BINARY)-linux-amd64 $(CMD)
 
-build-dsm-arm64:
+build-dsm-arm64: ui
 	GOOS=linux GOARCH=arm64 go build -o $(BINARY)-linux-arm64 $(CMD)
 
 clean:
 	rm -f $(BINARY) $(BINARY)-linux-amd64 $(BINARY)-linux-arm64
+	rm -rf ui/node_modules
 
 # Build a Synology .spk package (requires the binary to be built first).
 # Usage: make spk-amd64   or   make spk-arm64
