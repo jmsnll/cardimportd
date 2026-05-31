@@ -47,7 +47,7 @@
         id="panel-cards"
         role="tabpanel"
         aria-labelledby="tab-cards"
-        :hidden="activeTab !== 'cards'"
+        v-show="activeTab === 'cards'"
       >
         <CardsView />
       </section>
@@ -56,10 +56,13 @@
         id="panel-settings"
         role="tabpanel"
         aria-labelledby="tab-settings"
-        :hidden="activeTab !== 'settings'"
+        v-show="activeTab === 'settings'"
       >
+        <article v-if="configError" class="message is-danger" role="alert">
+          <div class="message-body">Failed to load config: {{ configError }}</div>
+        </article>
         <SettingsView
-          v-if="config"
+          v-else-if="config"
           :config="config"
           @update:config="onConfigUpdated"
         />
@@ -69,10 +72,13 @@
         id="panel-notifications"
         role="tabpanel"
         aria-labelledby="tab-notifications"
-        :hidden="activeTab !== 'notifications'"
+        v-show="activeTab === 'notifications'"
       >
+        <article v-if="configError" class="message is-danger" role="alert">
+          <div class="message-body">Failed to load config: {{ configError }}</div>
+        </article>
         <NotificationsView
-          v-if="config"
+          v-else-if="config"
           :config="config"
           @update:config="onConfigUpdated"
         />
@@ -97,6 +103,7 @@ const tabs: Tab[] = ['cards', 'settings', 'notifications']
 
 const activeTab = ref<Tab>('cards')
 const config = ref<Config | null>(null)
+const configError = ref<string | null>(null)
 const toast = ref<InstanceType<typeof Toast> | null>(null)
 
 function showToast(msg: string, type: 'success' | 'error' = 'success') {
@@ -135,6 +142,7 @@ onMounted(async () => {
   try {
     config.value = await getConfig()
   } catch (err) {
+    configError.value = (err as Error).message
     showToast('Failed to load config: ' + (err as Error).message, 'error')
   }
 })

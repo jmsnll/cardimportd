@@ -18,7 +18,7 @@
           <input
             id="n-app-token"
             class="input"
-            type="text"
+            type="password"
             v-model="appToken"
             placeholder="aXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX"
             autocomplete="off"
@@ -33,7 +33,7 @@
           <input
             id="n-user-key"
             class="input"
-            type="text"
+            type="password"
             v-model="userKey"
             placeholder="uXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX"
             autocomplete="off"

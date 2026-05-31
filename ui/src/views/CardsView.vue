@@ -4,6 +4,10 @@
       <div class="message-body">Failed to load cards: {{ error }}</div>
     </article>
 
+    <div v-else-if="loading" class="has-text-centered py-6">
+      <p class="has-text-grey">Loading cards…</p>
+    </div>
+
     <div v-else-if="Object.keys(cards).length === 0" class="has-text-centered py-6">
       <p class="is-size-1 mb-3" aria-hidden="true">💾</p>
       <p class="is-size-5 has-text-weight-semibold mb-2">No cards registered</p>
@@ -36,7 +40,7 @@
                     type="text"
                     placeholder="Owner name"
                     :aria-label="`Owner name for card ${uuid}`"
-                    ref="editInput"
+                    :ref="(el) => { if (el) editInputs[String(uuid)] = el as HTMLInputElement }"
                   />
                 </div>
               </template>
@@ -90,18 +94,22 @@ import type { CardEntry, CardStatus } from '../types'
 
 const cards = ref<Record<string, CardEntry>>({})
 const error = ref<string | null>(null)
+const loading = ref(true)
 const editingUuid = ref<string | null>(null)
 const editOwner = ref('')
-const editInput = ref<HTMLInputElement | null>(null)
+const editInputs: Record<string, HTMLInputElement> = {}
 
 const showToast = inject<(msg: string, type?: 'success' | 'error') => void>('showToast')!
 
 async function load() {
   error.value = null
+  loading.value = true
   try {
     cards.value = await getCards()
   } catch (err) {
     error.value = (err as Error).message
+  } finally {
+    loading.value = false
   }
 }
 
@@ -109,7 +117,7 @@ function startEdit(uuid: string, owner: string) {
   editingUuid.value = uuid
   editOwner.value = owner ?? ''
   nextTick(() => {
-    if (editInput.value) editInput.value.focus()
+    editInputs[uuid]?.focus()
   })
 }
 
