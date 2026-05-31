@@ -8,29 +8,26 @@ on:
 permissions:
   contents: write
 
-env:
-  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
-
 jobs:
   goreleaser:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
         with:
           fetch-depth: 0
 
-      - uses: actions/setup-go@v5
+      - uses: actions/setup-go@v6
         with:
           go-version-file: go.mod
 
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v6
         with:
           node-version: '22'
 
       - name: Build UI
         run: make ui
 
-      - uses: goreleaser/goreleaser-action@v6
+      - uses: goreleaser/goreleaser-action@v7
         with:
           version: "~> v2"
           args: release --clean
@@ -46,9 +43,9 @@ jobs:
           - { syno_arch: x86_64, goarch: amd64 }
           - { syno_arch: armv8,  goarch: arm64 }
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
 
-      - uses: actions/setup-go@v5
+      - uses: actions/setup-go@v6
         with:
           go-version-file: go.mod
 
@@ -60,7 +57,7 @@ jobs:
           echo "semver=${SEMVER}" >> "$GITHUB_OUTPUT"
           echo "spk_version=${SEMVER}-0001" >> "$GITHUB_OUTPUT"
 
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v6
         with:
           node-version: '22'
 
@@ -104,7 +101,7 @@ jobs:
               "https://github.com/jmsnll/cardimportd/releases/download/${TAG}/cardimportd-${SPK_VER}-${ARCH}.spk"
           done
 
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
 
       - name: Generate packages.json
         run: |
