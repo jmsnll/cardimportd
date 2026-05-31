@@ -37,6 +37,22 @@ func TestRecent_Limit(t *testing.T) {
 	}
 }
 
+func TestAppend_TrimsAtLimit(t *testing.T) {
+	log := history.New(filepath.Join(t.TempDir(), "h.jsonl"))
+	for i := 0; i < 10005; i++ {
+		if err := log.Append(history.Entry{UUID: "X", StartedAt: time.Now(), CompletedAt: time.Now()}); err != nil {
+			t.Fatalf("Append %d: %v", i, err)
+		}
+	}
+	entries, err := log.Recent(0)
+	if err != nil {
+		t.Fatalf("Recent: %v", err)
+	}
+	if len(entries) > 10000 {
+		t.Errorf("got %d entries, want <= 10000", len(entries))
+	}
+}
+
 func TestRecent_Missing(t *testing.T) {
 	log := history.New(filepath.Join(t.TempDir(), "missing.jsonl"))
 	entries, err := log.Recent(10)
