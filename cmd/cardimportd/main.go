@@ -29,6 +29,7 @@ func main() {
 	procMounts   := flag.String("proc-mounts", "/proc/mounts", "mounts file to poll")
 	pollInterval := flag.Duration("poll-interval", 2*time.Second, "watcher poll interval")
 	flag.Parse()
+	checkBlkid()
 
 	logger := slog.New(slog.NewJSONHandler(os.Stdout, &slog.HandlerOptions{Level: slog.LevelInfo}))
 	slog.SetDefault(logger)
@@ -277,6 +278,13 @@ func handleMount(
 		"bytes", res.BytesCopied,
 		"duration", fmt.Sprintf("%.1fs", elapsed.Seconds()),
 	)
+}
+
+func checkBlkid() {
+	if _, err := exec.LookPath("blkid"); err != nil {
+		slog.Error("startup: blkid not found on PATH — card UUID detection will fail; install util-linux")
+		os.Exit(1)
+	}
 }
 
 func cardUUID(device string) (string, error) {

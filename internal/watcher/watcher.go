@@ -76,6 +76,9 @@ func (w *Watcher) Events() <-chan MountEvent {
 	return w.events
 }
 
+// maxBackoff is the upper bound on the exponential backoff delay.
+const maxBackoff = 30 * time.Second
+
 // Start begins polling. Blocks until ctx is cancelled.
 func (w *Watcher) Start(ctx context.Context) error {
 	ticker := time.NewTicker(w.interval)
@@ -83,6 +86,7 @@ func (w *Watcher) Start(ctx context.Context) error {
 
 	var snapshot map[string]mountEntry
 	first := true
+	consecutiveErrors := 0
 
 	for {
 		select {
@@ -91,12 +95,29 @@ func (w *Watcher) Start(ctx context.Context) error {
 		case <-ticker.C:
 			current, err := w.readUSBMounts()
 			if err != nil {
+				consecutiveErrors++
+				backoff := w.interval * (1 << consecutiveErrors)
+				if backoff > maxBackoff {
+					backoff = maxBackoff
+				}
 				slog.Warn("watcher: failed to read mounts file",
 					slog.String("path", w.procMountsPath),
 					slog.String("error", err.Error()),
 				)
+				if backoff > w.interval {
+					slog.Warn("watcher: backing off due to repeated errors",
+						slog.Duration("backoff", backoff),
+					)
+				}
+				select {
+				case <-ctx.Done():
+					return ctx.Err()
+				case <-time.After(backoff):
+				}
 				continue
 			}
+
+			consecutiveErrors = 0
 
 			if first {
 				snapshot = current
