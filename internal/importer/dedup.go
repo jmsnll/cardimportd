@@ -46,7 +46,10 @@ func checkDup(srcPath, dstPath string, srcMeta meta.FileMeta) (dedupResult, erro
 		return dedupResult{action: dupSkip, dstPath: dstPath}, nil
 	}
 
-	unique := uniqueDst(filepath.Dir(dstPath), filepath.Base(dstPath))
+	unique, err := uniqueDst(filepath.Dir(dstPath), filepath.Base(dstPath))
+	if err != nil {
+		return dedupResult{}, fmt.Errorf("unique dst: %w", err)
+	}
 	return dedupResult{action: dupRename, dstPath: unique}, nil
 }
 
@@ -57,13 +60,14 @@ func sameSecond(a, b time.Time) bool {
 	return a.Truncate(time.Second).Equal(b.Truncate(time.Second))
 }
 
-func uniqueDst(dir, filename string) string {
+func uniqueDst(dir, filename string) (string, error) {
 	ext := filepath.Ext(filename)
 	stem := strings.TrimSuffix(filename, ext)
-	for i := 2; ; i++ {
+	for i := 2; i <= 999; i++ {
 		candidate := filepath.Join(dir, fmt.Sprintf("%s_%d%s", stem, i, ext))
 		if _, err := os.Stat(candidate); os.IsNotExist(err) {
-			return candidate
+			return candidate, nil
 		}
 	}
+	return "", fmt.Errorf("could not find unique destination for %q after 998 attempts", filename)
 }

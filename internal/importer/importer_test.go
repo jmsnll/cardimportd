@@ -103,12 +103,18 @@ func TestSameSecond(t *testing.T) {
 
 func TestUniqueDst(t *testing.T) {
 	dir := t.TempDir()
-	got := uniqueDst(dir, "DSCF0001.RAF")
+	got, err := uniqueDst(dir, "DSCF0001.RAF")
+	if err != nil {
+		t.Fatalf("uniqueDst: %v", err)
+	}
 	if !strings.HasSuffix(got, "_2.RAF") {
 		t.Errorf("uniqueDst = %q, want _2.RAF suffix", got)
 	}
 	makeFile(t, dir, "DSCF0001_2.RAF", []byte("x"))
-	got = uniqueDst(dir, "DSCF0001.RAF")
+	got, err = uniqueDst(dir, "DSCF0001.RAF")
+	if err != nil {
+		t.Fatalf("uniqueDst: %v", err)
+	}
 	if !strings.HasSuffix(got, "_3.RAF") {
 		t.Errorf("uniqueDst after _2 exists = %q, want _3.RAF suffix", got)
 	}

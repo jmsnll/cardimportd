@@ -14,15 +14,7 @@ type destVars struct {
 	Owner, Year, Month, Day, CameraModel, CardUUID string
 }
 
-func resolveDestDir(importRoot, templateStr, owner, cardUUID, cameraModel string, dt time.Time) (string, error) {
-	ts := templateStr
-	if ts == "" {
-		ts = defaultDestTemplate
-	}
-	tmpl, err := template.New("dest").Parse(ts)
-	if err != nil {
-		return "", fmt.Errorf("parse dest template: %w", err)
-	}
+func resolveDestDir(importRoot string, tmpl *template.Template, owner, cardUUID, cameraModel string, dt time.Time) (string, error) {
 	vars := destVars{
 		Owner:       owner,
 		CardUUID:    cardUUID,
