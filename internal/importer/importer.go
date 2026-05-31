@@ -15,11 +15,12 @@ import (
 
 // Result holds aggregate counters for a completed import run.
 type Result struct {
-	Total       int
-	Imported    int
-	Skipped     int
-	Failed      int
-	BytesCopied int64
+	Total        int
+	Imported     int
+	Skipped      int
+	Failed       int
+	MirrorFailed int
+	BytesCopied  int64
 }
 
 // Importer orchestrates the import of all media files from a mounted card.
@@ -64,11 +65,14 @@ func (imp *Importer) Import(ctx context.Context, owner, mountPath, cardUUID stri
 		}
 
 		res.Total++
-		n, hash, dstPath, action, err := imp.importFile(ctx, owner, path, cardUUID)
+		n, hash, dstPath, action, mirrFail, err := imp.importFile(ctx, owner, path, cardUUID)
 		if err != nil {
 			slog.Error("importer: failed", "src", path, "error", err)
 			res.Failed++
 			return nil
+		}
+		if mirrFail {
+			res.MirrorFailed++
 		}
 		switch action {
 		case dupSkip:
@@ -100,7 +104,7 @@ func (imp *Importer) Import(ctx context.Context, owner, mountPath, cardUUID stri
 	return res, err
 }
 
-func (imp *Importer) importFile(ctx context.Context, owner, srcPath, cardUUID string) (n int64, hash string, dstPath string, action dupAction, err error) {
+func (imp *Importer) importFile(ctx context.Context, owner, srcPath, cardUUID string) (n int64, hash string, dstPath string, action dupAction, mirrorFailed bool, err error) {
 	m := meta.Extract(srcPath)
 
 	cardEntry, _ := imp.cfg.LookupCard(cardUUID)
@@ -110,27 +114,27 @@ func (imp *Importer) importFile(ctx context.Context, owner, srcPath, cardUUID st
 	}
 	dstDir, err := resolveDestDir(imp.cfg.ImportRoot, templateStr, owner, cardUUID, m.CameraModel, m.DateTimeOriginal)
 	if err != nil {
-		return 0, "", "", 0, fmt.Errorf("resolve dest: %w", err)
+		return 0, "", "", 0, false, fmt.Errorf("resolve dest: %w", err)
 	}
 	naiveDst := filepath.Join(dstDir, filepath.Base(srcPath))
 
 	dup, err := checkDup(srcPath, naiveDst, m)
 	if err != nil {
-		return 0, "", "", 0, fmt.Errorf("dedup check: %w", err)
+		return 0, "", "", 0, false, fmt.Errorf("dedup check: %w", err)
 	}
 
 	if dup.action == dupSkip {
 		slog.Debug("importer: skip (duplicate)", "src", srcPath, "dst", dup.dstPath)
-		return 0, "", dup.dstPath, dupSkip, nil
+		return 0, "", dup.dstPath, dupSkip, false, nil
 	}
 
 	if err := os.MkdirAll(filepath.Dir(dup.dstPath), 0o755); err != nil {
-		return 0, "", "", 0, fmt.Errorf("mkdir: %w", err)
+		return 0, "", "", 0, false, fmt.Errorf("mkdir: %w", err)
 	}
 
 	n, hash, err = copyVerified(srcPath, dup.dstPath)
 	if err != nil {
-		return 0, "", "", 0, err
+		return 0, "", "", 0, false, err
 	}
 
 	slog.Info("importer: imported",
@@ -140,5 +144,21 @@ func (imp *Importer) importFile(ctx context.Context, owner, srcPath, cardUUID st
 		"action", dup.action,
 		"meta_source", m.Source,
 	)
-	return n, hash, dup.dstPath, dup.action, nil
+	var mirrFail bool
+	if imp.cfg.MirrorRoot != "" {
+		if rel, relErr := filepath.Rel(imp.cfg.ImportRoot, dup.dstPath); relErr == nil {
+			mirrorDst := filepath.Join(imp.cfg.MirrorRoot, rel)
+			if mkErr := os.MkdirAll(filepath.Dir(mirrorDst), 0o755); mkErr != nil {
+				slog.Warn("importer: mirror mkdir failed", "error", mkErr)
+				mirrFail = true
+			} else if _, _, cpErr := copyVerified(srcPath, mirrorDst); cpErr != nil {
+				slog.Warn("importer: mirror copy failed", "error", cpErr)
+				mirrFail = true
+			}
+		} else {
+			slog.Warn("importer: mirror rel path failed", "error", relErr)
+			mirrFail = true
+		}
+	}
+	return n, hash, dup.dstPath, dup.action, mirrFail, nil
 }

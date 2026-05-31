@@ -22,12 +22,13 @@ const (
 
 // ImportStats carries aggregate counters for a completed or failed import run.
 type ImportStats struct {
-	Total       int
-	Imported    int
-	Skipped     int
-	Failed      int
-	BytesCopied int64
-	Duration    time.Duration
+	Total        int
+	Imported     int
+	Skipped      int
+	Failed       int
+	MirrorFailed int
+	BytesCopied  int64
+	Duration     time.Duration
 }
 
 // Event describes a single lifecycle occurrence within the daemon.

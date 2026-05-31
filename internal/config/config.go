@@ -82,6 +82,7 @@ type Config struct {
 	WatchPaths          []string             `yaml:"watch_paths"      json:"watch_paths"`
 	ImportRoot          string               `yaml:"import_root"      json:"import_root"`
 	MinFreeGB           float64              `yaml:"min_free_gb,omitempty" json:"min_free_gb,omitempty"`
+	MirrorRoot          string               `yaml:"mirror_root,omitempty" json:"mirror_root,omitempty"`
 	Cards               map[string]CardEntry `yaml:"cards"            json:"cards"`
 	FileExtensions      []string             `yaml:"file_extensions"  json:"file_extensions"`
 	LogPath             string               `yaml:"log_path"         json:"log_path"`

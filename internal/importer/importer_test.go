@@ -285,6 +285,47 @@ func TestImport_CustomTemplate(t *testing.T) {
 	}
 }
 
+func TestImport_MirrorCopied(t *testing.T) {
+	cardDir, dstRoot, mirrorRoot := t.TempDir(), t.TempDir(), t.TempDir()
+	makeFile(t, cardDir, "a.jpg", randomBytes(t, 512))
+	cfg := makeConfig(dstRoot)
+	cfg.MirrorRoot = mirrorRoot
+	res, err := New(cfg, &discardNotifier{}).Import(context.Background(), "James", cardDir, "")
+	if err != nil {
+		t.Fatalf("Import: %v", err)
+	}
+	if res.MirrorFailed != 0 {
+		t.Errorf("MirrorFailed = %d, want 0", res.MirrorFailed)
+	}
+	var found bool
+	filepath.WalkDir(mirrorRoot, func(p string, d os.DirEntry, _ error) error {
+		if !d.IsDir() {
+			found = true
+		}
+		return nil
+	})
+	if !found {
+		t.Error("file not in mirror")
+	}
+}
+
+func TestImport_MirrorFailDoesNotAbortPrimary(t *testing.T) {
+	cardDir, dstRoot := t.TempDir(), t.TempDir()
+	makeFile(t, cardDir, "a.jpg", randomBytes(t, 512))
+	cfg := makeConfig(dstRoot)
+	cfg.MirrorRoot = "/this/cannot/exist/ever"
+	res, err := New(cfg, &discardNotifier{}).Import(context.Background(), "James", cardDir, "")
+	if err != nil {
+		t.Fatalf("Import failed: %v", err)
+	}
+	if res.Imported != 1 {
+		t.Errorf("Imported = %d, want 1", res.Imported)
+	}
+	if res.MirrorFailed != 1 {
+		t.Errorf("MirrorFailed = %d, want 1", res.MirrorFailed)
+	}
+}
+
 func TestImport_SecondRunSkipsDuplicates(t *testing.T) {
 	cardDir := t.TempDir()
 	dstRoot := t.TempDir()
