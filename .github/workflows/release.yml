@@ -33,10 +33,18 @@ jobs:
     strategy:
       matrix:
         include:
-          - arch: x86_64
-            goarch: amd64
-          - arch: armv8
-            goarch: arm64
+          # x86_64 — all use the same linux/amd64 binary
+          - { syno_arch: apollolake,  goarch: amd64 }
+          - { syno_arch: geminilake,  goarch: amd64 }
+          - { syno_arch: r1000,       goarch: amd64 }
+          - { syno_arch: v1000,       goarch: amd64 }
+          - { syno_arch: denverton,   goarch: amd64 }
+          - { syno_arch: broadwell,   goarch: amd64 }
+          - { syno_arch: broadwellnk, goarch: amd64 }
+          # arm64 — linux/arm64 binary; covers newer ARM NAS models
+          - { syno_arch: armada37xx,  goarch: arm64 }
+          - { syno_arch: rtd1296,     goarch: arm64 }
+          - { syno_arch: rtd1619b,    goarch: arm64 }
     steps:
       - uses: actions/checkout@v4
 
@@ -62,14 +70,15 @@ jobs:
       - name: Build SPK
         run: |
           make _spk \
-            ARCH=${{ matrix.arch }} \
+            ARCH=${{ matrix.syno_arch }} \
             BINARY_SUFFIX=linux-${{ matrix.goarch }} \
             SPK_VERSION=${{ steps.ver.outputs.spk_version }}
 
       - name: Upload SPK to release
         run: |
           gh release upload "${{ github.ref_name }}" \
-            "cardimportd-${{ steps.ver.outputs.spk_version }}-${{ matrix.arch }}.spk"
+            "cardimportd-${{ steps.ver.outputs.spk_version }}-${{ matrix.syno_arch }}.spk" \
+            --clobber
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
@@ -77,55 +86,47 @@ jobs:
     needs: spk
     runs-on: ubuntu-latest
     steps:
-      # DSM Package Center does not follow GitHub's 302 redirect for release
-      # assets, so we serve the SPK files directly from GitHub Pages instead.
       - name: Download SPK files
         run: |
           TAG="${GITHUB_REF_NAME}"
           SEMVER="${TAG#v}"
           SPK_VER="${SEMVER}-0001"
           mkdir -p /tmp/pages
-          curl -fsSL -o /tmp/pages/cardimportd-${SPK_VER}-x86_64.spk \
-            "https://github.com/jmsnll/cardimportd/releases/download/${TAG}/cardimportd-${SPK_VER}-x86_64.spk"
-          curl -fsSL -o /tmp/pages/cardimportd-${SPK_VER}-armv8.spk \
-            "https://github.com/jmsnll/cardimportd/releases/download/${TAG}/cardimportd-${SPK_VER}-armv8.spk"
+          for ARCH in apollolake geminilake r1000 v1000 denverton broadwell broadwellnk \
+                      armada37xx rtd1296 rtd1619b; do
+            curl -fsSL -o "/tmp/pages/cardimportd-${SPK_VER}-${ARCH}.spk" \
+              "https://github.com/jmsnll/cardimportd/releases/download/${TAG}/cardimportd-${SPK_VER}-${ARCH}.spk"
+          done
 
       - name: Generate packages.json
         run: |
           TAG="${GITHUB_REF_NAME}"
           SEMVER="${TAG#v}"
           SPK_VER="${SEMVER}-0001"
-          BASE="https://jmsnll.github.io/cardimportd"
-          cat > /tmp/pages/packages.json <<EOF
-          {
-            "packages": [
-              {
-                "package": "cardimportd",
-                "version": "${SPK_VER}",
-                "dname": "Card Importer",
-                "desc": "Watches for SD/CFExpress card insertions and imports photos/videos.",
-                "arch": ["x86_64"],
-                "distributor": "jmsnll",
-                "link": "${BASE}/cardimportd-${SPK_VER}-x86_64.spk",
-                "qinst": true,
-                "qupgrade": true,
-                "qstart": true
-              },
-              {
-                "package": "cardimportd",
-                "version": "${SPK_VER}",
-                "dname": "Card Importer",
-                "desc": "Watches for SD/CFExpress card insertions and imports photos/videos.",
-                "arch": ["armv8"],
-                "distributor": "jmsnll",
-                "link": "${BASE}/cardimportd-${SPK_VER}-armv8.spk",
-                "qinst": true,
-                "qupgrade": true,
-                "qstart": true
-              }
-            ]
-          }
-          EOF
+          python3 -c "
+import json, sys
+base, spk_ver = sys.argv[1], sys.argv[2]
+archs = sys.argv[3:]
+packages = [{
+    'package': 'cardimportd',
+    'version': spk_ver,
+    'dname': 'Card Importer',
+    'desc': 'Watches for SD/CFExpress card insertions and imports photos/videos.',
+    'arch': [arch],
+    'distributor': 'jmsnll',
+    'link': f'{base}/cardimportd-{spk_ver}-{arch}.spk',
+    'qinst': True,
+    'qupgrade': True,
+    'qstart': True,
+} for arch in archs]
+with open('/tmp/pages/packages.json', 'w') as f:
+    json.dump({'packages': packages}, f, indent=2)
+    f.write('\n')
+" \
+            "https://jmsnll.github.io/cardimportd" \
+            "${SPK_VER}" \
+            apollolake geminilake r1000 v1000 denverton broadwell broadwellnk \
+            armada37xx rtd1296 rtd1619b
 
       - name: Deploy to gh-pages
         uses: peaceiris/actions-gh-pages@v4
