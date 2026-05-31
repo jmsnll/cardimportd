@@ -1,0 +1,12 @@
+[Unit]
+Description=Card Importer Daemon
+After=network.target
+
+[Service]
+Type=simple
+ExecStart=/usr/bin/cardimportd --config /etc/cardimportd/config.yaml
+Restart=on-failure
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target

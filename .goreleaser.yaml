@@ -1,0 +1,60 @@
+version: 2
+
+before:
+  hooks:
+    - go mod tidy
+
+builds:
+  - id: cardimportd
+    main: ./cmd/cardimportd
+    binary: cardimportd
+    goos:
+      - linux
+    goarch:
+      - amd64
+      - arm64
+    ldflags:
+      - -s -w -X github.com/jmsnll/cardimportd/internal/version.Version={{.Version}}
+
+archives:
+  - id: default
+    name_template: "{{ .ProjectName }}-{{ .Version }}-{{ .Os }}-{{ .Arch }}"
+    formats:
+      - tar.gz
+
+nfpms:
+  - id: packages
+    package_name: cardimportd
+    vendor: jmsnll
+    homepage: https://github.com/jmsnll/cardimportd
+    maintainer: James Neill <contact@jamesneill.co.uk>
+    description: Watches for SD/CFExpress card insertions and imports photos/videos.
+    license: MIT
+    formats:
+      - deb
+      - rpm
+    bindir: /usr/bin
+    contents:
+      - src: config.example.yaml
+        dst: /etc/cardimportd/config.example.yaml
+        type: "config|noreplace"
+      - src: package/cardimportd.service
+        dst: /lib/systemd/system/cardimportd.service
+    scripts:
+      postinstall: package/linux/postinstall.sh
+      preremove: package/linux/preremove.sh
+
+changelog:
+  sort: asc
+  filters:
+    exclude:
+      - "^docs:"
+      - "^test:"
+      - "^chore:"
+
+release:
+  github:
+    owner: jmsnll
+    name: cardimportd
+  draft: false
+  prerelease: auto
