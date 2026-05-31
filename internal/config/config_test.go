@@ -41,6 +41,25 @@ func writeTempYAML(t *testing.T, content string) string {
 	return f.Name()
 }
 
+func TestDefault(t *testing.T) {
+	cfg := config.Default()
+	if cfg == nil {
+		t.Fatal("Default() returned nil")
+	}
+	if cfg.ImportRoot == "" {
+		t.Error("Default ImportRoot is empty")
+	}
+	if len(cfg.WatchPaths) == 0 {
+		t.Error("Default WatchPaths is empty")
+	}
+	if len(cfg.FileExtensions) == 0 {
+		t.Error("Default FileExtensions is empty")
+	}
+	if cfg.Cards == nil {
+		t.Error("Default Cards map is nil")
+	}
+}
+
 func TestLoadSaveRoundTrip(t *testing.T) {
 	src := writeTempYAML(t, fixtureYAML)
 	cfg, err := config.Load(src)

@@ -167,6 +167,29 @@ func TestCheckDup_ReplaceSmallerExisting(t *testing.T) {
 	}
 }
 
+func TestCheckDup_RenameWhenTimestampsDiffer(t *testing.T) {
+	dir := t.TempDir()
+	src := makeFile(t, dir, "src.jpg", randomBytes(t, 512))
+	dst := makeFile(t, dir, "dst.jpg", randomBytes(t, 512))
+
+	// Give src and dst distinct mtimes so sameSecond returns false.
+	past := time.Now().Add(-10 * time.Second).Truncate(time.Second)
+	now := time.Now().Truncate(time.Second)
+	os.Chtimes(dst, past, past)
+	os.Chtimes(src, now, now)
+
+	res, err := checkDup(src, dst, meta.Extract(src))
+	if err != nil {
+		t.Fatalf("checkDup: %v", err)
+	}
+	if res.action != dupRename {
+		t.Errorf("action = %v, want dupRename (different timestamps)", res.action)
+	}
+	if res.dstPath == dst {
+		t.Error("dstPath should be a new unique path, not the original dst")
+	}
+}
+
 // --- Import integration tests ---
 
 func TestImport_BasicWalk(t *testing.T) {

@@ -233,6 +233,51 @@ func TestExtractRAFMeta_TruncatedHeader(t *testing.T) {
 	}
 }
 
+func TestExtract_JPEGWithEXIF(t *testing.T) {
+	modelNT := "Sony A7R V" + string([]byte{0})
+	dtoNT := "2023:11:20 14:00:00" + string([]byte{0})
+	data := buildMinimalJPEGWithEXIF(modelNT, dtoNT)
+
+	f, err := os.CreateTemp(t.TempDir(), "*.jpg")
+	if err != nil {
+		t.Fatal(err)
+	}
+	_, _ = f.Write(data)
+	path := f.Name()
+	f.Close()
+
+	got := Extract(path)
+	if got.Source != SourceEXIF {
+		t.Errorf("Source = %v, want SourceEXIF", got.Source)
+	}
+	if got.DateTimeOriginal.Year() != 2023 {
+		t.Errorf("Year = %d, want 2023", got.DateTimeOriginal.Year())
+	}
+}
+
+func TestExtract_MP4WithMoov(t *testing.T) {
+	refUnix := time.Date(2024, 6, 1, 9, 0, 0, 0, time.UTC).Unix()
+	refMac := uint32(uint64(refUnix) + macEpochOffset)
+	data := buildMP4(buildMvhdV0(refMac))
+
+	f, err := os.CreateTemp(t.TempDir(), "*.mp4")
+	if err != nil {
+		t.Fatal(err)
+	}
+	_, _ = f.Write(data)
+	path := f.Name()
+	f.Close()
+
+	got := Extract(path)
+	if got.Source != SourceVideoContainer {
+		t.Errorf("Source = %v, want SourceVideoContainer", got.Source)
+	}
+	want := time.Unix(refUnix, 0).UTC()
+	if !got.DateTimeOriginal.Equal(want) {
+		t.Errorf("DateTimeOriginal = %v, want %v", got.DateTimeOriginal, want)
+	}
+}
+
 func TestExtract_FallsBackToMtimeForUnknownExtension(t *testing.T) {
 	f, err := os.CreateTemp(t.TempDir(), "*.txt")
 	if err != nil {
