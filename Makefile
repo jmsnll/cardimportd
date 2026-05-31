@@ -4,7 +4,7 @@ BINARY  := cardimportd
 CMD     := ./cmd/$(BINARY)
 
 ui:
-	cd ui && npm ci && npm run build
+	cd ui && npm install && npm run build
 
 build: ui
 	go build -o $(BINARY) $(CMD)
