@@ -56,6 +56,18 @@ func Extract(path string) FileMeta {
 		}
 		slog.Debug("meta: EXIF extraction failed, falling back", "path", path, "ext", ext)
 
+	case ".cr3", ".cr2", ".nef", ".nrw", ".dng", ".orf", ".rw2":
+		if m, ok := extractEXIFFromFile(path); ok {
+			return m
+		}
+		slog.Debug("meta: EXIF extraction failed, falling back", "path", path, "ext", ext)
+
+	case ".heic", ".heif":
+		if m, ok := extractEXIFFromFile(path); ok {
+			return m
+		}
+		slog.Debug("meta: HEIF EXIF extraction failed, falling back", "path", path)
+
 	case ".mp4", ".mov":
 		if m, ok := extractVideoMeta(path); ok {
 			return m

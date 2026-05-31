@@ -112,3 +112,36 @@ func TestMultiNotifier_Empty(t *testing.T) {
 		t.Fatalf("expected nil for empty MultiNotifier, got: %v", err)
 	}
 }
+
+func TestEvent_CardLabelZeroValue(t *testing.T) {
+	// An Event constructed without setting CardLabel must have the zero value "".
+	evt := notify.Event{
+		Kind:     notify.KindImportStarted,
+		CardUUID: "AABB-CCDD",
+		Owner:    "James",
+	}
+	if evt.CardLabel != "" {
+		t.Errorf("CardLabel = %q, want empty string when not set", evt.CardLabel)
+	}
+}
+
+func TestEvent_CardLabelRoundTrip(t *testing.T) {
+	label := "Fujifilm X-T5"
+	var received notify.Event
+	n := funcNotifier(func(_ context.Context, e notify.Event) error {
+		received = e
+		return nil
+	})
+	evt := notify.Event{
+		Kind:      notify.KindImportStarted,
+		CardUUID:  "AABB-CCDD",
+		Owner:     "James",
+		CardLabel: label,
+	}
+	if err := n.Notify(context.Background(), evt); err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if received.CardLabel != label {
+		t.Errorf("CardLabel = %q, want %q", received.CardLabel, label)
+	}
+}

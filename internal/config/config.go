@@ -20,13 +20,25 @@ const (
 )
 
 var defaultFileExtensions = []string{
-	".jpg", ".jpeg", ".raf", ".arw", ".mp4", ".mov", ".xmp",
+	".jpg", ".jpeg",
+	".raf",
+	".arw", ".lrf",
+	".cr3", ".cr2",
+	".nef", ".nrw",
+	".dng",
+	".orf",
+	".rw2",
+	".heic", ".heif",
+	".mp4", ".mov", ".mxf",
+	".wav", ".aif",
+	".xmp",
 }
 
 // CardEntry holds the per-card configuration keyed by filesystem UUID.
 type CardEntry struct {
-	Owner     string     `yaml:"owner"      json:"owner"`
-	Status    CardStatus `yaml:"status"     json:"status"`
+	Owner     string     `yaml:"owner"                json:"owner"`
+	Label     string     `yaml:"label,omitempty"      json:"label,omitempty"`
+	Status    CardStatus `yaml:"status"               json:"status"`
 	FirstSeen *time.Time `yaml:"first_seen,omitempty" json:"first_seen,omitempty"`
 }
 

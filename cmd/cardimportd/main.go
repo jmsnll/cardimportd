@@ -193,6 +193,7 @@ func handleMount(
 		Kind:      notify.KindImportStarted,
 		CardUUID:  uuid,
 		Owner:     entry.Owner,
+		CardLabel: entry.Label,
 		MountPath: evt.MountPoint,
 		Time:      time.Now(),
 	})
@@ -206,6 +207,7 @@ func handleMount(
 			Kind:      notify.KindImportFailed,
 			CardUUID:  uuid,
 			Owner:     entry.Owner,
+			CardLabel: entry.Label,
 			MountPath: evt.MountPoint,
 			Time:      time.Now(),
 			Detail:    err.Error(),
@@ -217,6 +219,7 @@ func handleMount(
 		Kind:      notify.KindImportCompleted,
 		CardUUID:  uuid,
 		Owner:     entry.Owner,
+		CardLabel: entry.Label,
 		MountPath: evt.MountPoint,
 		Time:      time.Now(),
 		Stats: &notify.ImportStats{
