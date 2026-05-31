@@ -6,19 +6,19 @@ import (
 	"fmt"
 	"log/slog"
 	"net/http"
-	"strconv"
+	"os"
+	"path/filepath"
+	"sort"
 	"strings"
 	"time"
 
 	"github.com/jmsnll/cardimportd/internal/config"
-	"github.com/jmsnll/cardimportd/internal/history"
 	"github.com/jmsnll/cardimportd/internal/notify"
 )
 
 type apiHandler struct {
-	acc  ConfigAccessor
-	hist HistoryReader
-	bus  *EventBus
+	acc ConfigAccessor
+	bus *EventBus
 }
 
 func writeJSON(w http.ResponseWriter, v any, status int) {
@@ -224,35 +224,6 @@ func (h *apiHandler) handleNotifyTest(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, map[string]bool{"ok": true}, http.StatusOK)
 }
 
-// -- /api/history -------------------------------------------------------------
-
-func (h *apiHandler) handleHistory(w http.ResponseWriter, r *http.Request) {
-	if r.Method != http.MethodGet {
-		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
-		return
-	}
-	limit := 50
-	if s := r.URL.Query().Get("limit"); s != "" {
-		if n, err := strconv.Atoi(s); err == nil && n > 0 {
-			limit = n
-		}
-	}
-	if h.hist == nil {
-		writeJSON(w, []history.Entry{}, http.StatusOK)
-		return
-	}
-	entries, err := h.hist.Recent(limit)
-	if err != nil {
-		slog.Error("webui: history", "err", err)
-		apiError(w, "failed to read history", http.StatusInternalServerError)
-		return
-	}
-	if entries == nil {
-		entries = []history.Entry{}
-	}
-	writeJSON(w, entries, http.StatusOK)
-}
-
 // -- /api/events --------------------------------------------------------------
 
 func (h *apiHandler) handleEvents(w http.ResponseWriter, r *http.Request) {
@@ -286,6 +257,52 @@ func (h *apiHandler) handleEvents(w http.ResponseWriter, r *http.Request) {
 			}
 		}
 	}
+}
+
+// -- /api/fs ------------------------------------------------------------------
+
+type fsResponse struct {
+	Path    string   `json:"path"`
+	Entries []string `json:"entries"`
+}
+
+func (h *apiHandler) handleFS(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodGet {
+		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+
+	path := r.URL.Query().Get("path")
+	if path == "" {
+		path = "/"
+	}
+	path = filepath.Clean(path)
+
+	info, err := os.Stat(path)
+	if err != nil {
+		apiError(w, fmt.Sprintf("path not found: %s", err), http.StatusBadRequest)
+		return
+	}
+	if !info.IsDir() {
+		apiError(w, fmt.Sprintf("%q is not a directory", path), http.StatusBadRequest)
+		return
+	}
+
+	des, err := os.ReadDir(path)
+	if err != nil {
+		apiError(w, fmt.Sprintf("cannot read directory: %s", err), http.StatusBadRequest)
+		return
+	}
+
+	names := make([]string, 0, len(des))
+	for _, de := range des {
+		if de.IsDir() {
+			names = append(names, de.Name())
+		}
+	}
+	sort.Strings(names)
+
+	writeJSON(w, fsResponse{Path: path, Entries: names}, http.StatusOK)
 }
 
 // -- helpers ------------------------------------------------------------------
