@@ -33,12 +33,13 @@ type HistoryReader interface {
 type Server struct {
 	acc  ConfigAccessor
 	hist HistoryReader
+	bus  *EventBus
 	port int
 }
 
-// New constructs a Server with the given accessor, history reader, and listen port.
-func New(acc ConfigAccessor, hist HistoryReader, port int) *Server {
-	return &Server{acc: acc, hist: hist, port: port}
+// New constructs a Server with the given accessor, history reader, event bus, and listen port.
+func New(acc ConfigAccessor, hist HistoryReader, bus *EventBus, port int) *Server {
+	return &Server{acc: acc, hist: hist, bus: bus, port: port}
 }
 
 // Start registers routes and listens until ctx is cancelled.
@@ -53,12 +54,13 @@ func (s *Server) Start(ctx context.Context) error {
 	mux.Handle("/", http.FileServer(http.FS(stripped)))
 
 	// API routes.
-	api := &apiHandler{acc: s.acc, hist: s.hist}
+	api := &apiHandler{acc: s.acc, hist: s.hist, bus: s.bus}
 	mux.HandleFunc("/api/config", api.handleConfig)
 	mux.HandleFunc("/api/cards", api.handleCards)
 	mux.HandleFunc("/api/cards/", api.handleCard)   // /api/cards/{uuid}
 	mux.HandleFunc("/api/notify/test", api.handleNotifyTest)
 	mux.HandleFunc("/api/history", api.handleHistory)
+	mux.HandleFunc("/api/events", api.handleEvents)
 
 	addr := net.JoinHostPort("0.0.0.0", strconv.Itoa(s.port))
 	srv := &http.Server{
