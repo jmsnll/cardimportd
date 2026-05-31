@@ -126,7 +126,7 @@ func main() {
 	signal.Notify(sigCh, syscall.SIGINT, syscall.SIGTERM, syscall.SIGHUP)
 
 	go func() {
-		if err := w.Start(ctx); err != nil && err != context.Canceled {
+		if err := w.Start(ctx); err != nil && !errors.Is(err, context.Canceled) {
 			slog.Error("watcher: stopped unexpectedly", "error", err)
 		}
 	}()
@@ -192,32 +192,36 @@ func handleMount(
 				slog.Warn("new card registered as pending — edit config to activate",
 					"uuid", uuid, "config", cfgPath)
 			}
-			n.Notify(ctx, notify.Event{
+			if err := n.Notify(ctx, notify.Event{
 				Kind:      notify.KindNewCardPending,
 				CardUUID:  uuid,
 				MountPath: evt.MountPoint,
 				Time:      time.Now(),
 				Detail:    "edit config to activate",
-			})
+			}); err != nil {
+				slog.Warn("notify: delivery failed", "kind", string(notify.KindNewCardPending), "error", err)
+			}
 		}
 		return
 	}
 
-	n.Notify(ctx, notify.Event{
+	if err := n.Notify(ctx, notify.Event{
 		Kind:      notify.KindImportStarted,
 		CardUUID:  uuid,
 		Owner:     entry.Owner,
 		CardLabel: entry.Label,
 		MountPath: evt.MountPoint,
 		Time:      time.Now(),
-	})
+	}); err != nil {
+		slog.Warn("notify: delivery failed", "kind", string(notify.KindImportStarted), "error", err)
+	}
 
 	start := time.Now()
 	res, err := imp.Import(ctx, entry.Owner, evt.MountPoint, uuid)
 	elapsed := time.Since(start)
 
 	if err != nil {
-		n.Notify(ctx, notify.Event{
+		if notifyErr := n.Notify(ctx, notify.Event{
 			Kind:      notify.KindImportFailed,
 			CardUUID:  uuid,
 			Owner:     entry.Owner,
@@ -225,11 +229,13 @@ func handleMount(
 			MountPath: evt.MountPoint,
 			Time:      time.Now(),
 			Detail:    err.Error(),
-		})
+		}); notifyErr != nil {
+			slog.Warn("notify: delivery failed", "kind", string(notify.KindImportFailed), "error", notifyErr)
+		}
 		return
 	}
 
-	n.Notify(ctx, notify.Event{
+	if err := n.Notify(ctx, notify.Event{
 		Kind:      notify.KindImportCompleted,
 		CardUUID:  uuid,
 		Owner:     entry.Owner,
@@ -245,7 +251,9 @@ func handleMount(
 			BytesCopied:  res.BytesCopied,
 			Duration:     elapsed,
 		},
-	})
+	}); err != nil {
+		slog.Warn("notify: delivery failed", "kind", string(notify.KindImportCompleted), "error", err)
+	}
 
 	if err := hist.Append(history.Entry{
 		UUID:        uuid,
