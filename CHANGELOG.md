@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.13.5](https://github.com/jmsnll/cardimportd/compare/v0.13.4...v0.13.5) (2026-05-31)
+
+
+### Bug Fixes
+
+* **ci:** restore .gitkeep before goreleaser to avoid dirty state ([54a3578](https://github.com/jmsnll/cardimportd/commit/54a3578f25433eaae10795bf45625aac35c205a3))
+
 ## [0.13.4](https://github.com/jmsnll/cardimportd/compare/v0.13.3...v0.13.4) (2026-05-31)
 
 
