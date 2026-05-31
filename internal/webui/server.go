@@ -11,7 +11,6 @@ import (
 	"time"
 
 	"github.com/jmsnll/cardimportd/internal/config"
-	"github.com/jmsnll/cardimportd/internal/history"
 )
 
 //go:embed static
@@ -24,22 +23,16 @@ type ConfigAccessor struct {
 	Path string // absolute path to config.yaml on disk
 }
 
-// HistoryReader is the read side of the import history log.
-type HistoryReader interface {
-	Recent(n int) ([]history.Entry, error)
-}
-
 // Server is a small HTTP management server embedded in the daemon.
 type Server struct {
 	acc  ConfigAccessor
-	hist HistoryReader
 	bus  *EventBus
 	port int
 }
 
-// New constructs a Server with the given accessor, history reader, event bus, and listen port.
-func New(acc ConfigAccessor, hist HistoryReader, bus *EventBus, port int) *Server {
-	return &Server{acc: acc, hist: hist, bus: bus, port: port}
+// New constructs a Server with the given accessor, event bus, and listen port.
+func New(acc ConfigAccessor, bus *EventBus, port int) *Server {
+	return &Server{acc: acc, bus: bus, port: port}
 }
 
 // Start registers routes and listens until ctx is cancelled.
@@ -54,13 +47,13 @@ func (s *Server) Start(ctx context.Context) error {
 	mux.Handle("/", http.FileServer(http.FS(stripped)))
 
 	// API routes.
-	api := &apiHandler{acc: s.acc, hist: s.hist, bus: s.bus}
+	api := &apiHandler{acc: s.acc, bus: s.bus}
 	mux.HandleFunc("/api/config", api.handleConfig)
 	mux.HandleFunc("/api/cards", api.handleCards)
-	mux.HandleFunc("/api/cards/", api.handleCard)   // /api/cards/{uuid}
+	mux.HandleFunc("/api/cards/", api.handleCard) // /api/cards/{uuid}
 	mux.HandleFunc("/api/notify/test", api.handleNotifyTest)
-	mux.HandleFunc("/api/history", api.handleHistory)
 	mux.HandleFunc("/api/events", api.handleEvents)
+	mux.HandleFunc("/api/fs", api.handleFS)
 
 	addr := net.JoinHostPort("0.0.0.0", strconv.Itoa(s.port))
 	srv := &http.Server{

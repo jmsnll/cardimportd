@@ -17,7 +17,6 @@ import (
 	"time"
 
 	"github.com/jmsnll/cardimportd/internal/config"
-	"github.com/jmsnll/cardimportd/internal/history"
 	"github.com/jmsnll/cardimportd/internal/importer"
 	"github.com/jmsnll/cardimportd/internal/notify"
 	"github.com/jmsnll/cardimportd/internal/watcher"
@@ -49,9 +48,6 @@ func main() {
 			}
 		}
 	}
-
-	histPath := filepath.Join(filepath.Dir(*cfgPath), "import-history.jsonl")
-	hist := history.New(histPath)
 
 	logNotifier := notify.NewLogNotifier(logger)
 	notifiers := []notify.Notifier{logNotifier}
@@ -110,7 +106,7 @@ func main() {
 			Path: *cfgPath,
 		}
 		go func() {
-			srv := webui.New(acc, hist, bus, *webuiPort)
+			srv := webui.New(acc, bus, *webuiPort)
 			if err := srv.Start(ctx); err != nil {
 				slog.Error("webui: stopped", "error", err)
 			}
@@ -150,7 +146,7 @@ func main() {
 			if evt.Action != watcher.Mounted {
 				continue
 			}
-			go handleMount(ctx, getCfg, notifier, setCfg, hist, bus, evt, *cfgPath)
+			go handleMount(ctx, getCfg, notifier, setCfg, bus, evt, *cfgPath)
 		}
 	}
 }
@@ -160,7 +156,6 @@ func handleMount(
 	getCfg func() *config.Config,
 	n notify.Notifier,
 	setCfg func(*config.Config),
-	hist *history.Log,
 	bus *webui.EventBus,
 	evt watcher.MountEvent,
 	cfgPath string,
@@ -224,27 +219,25 @@ func handleMount(
 		})
 	})
 	start := time.Now()
-	res, err := imp.Import(ctx, entry.Owner, evt.MountPoint, uuid)
+	res, importErr := imp.Import(ctx, entry.Owner, evt.MountPoint, uuid)
 	imp.SetProgressCallback(nil)
 	elapsed := time.Since(start)
 
-	if err != nil {
-		if notifyErr := n.Notify(ctx, notify.Event{
+	if importErr != nil {
+		n.Notify(ctx, notify.Event{
 			Kind:      notify.KindImportFailed,
 			CardUUID:  uuid,
 			Owner:     entry.Owner,
 			CardLabel: entry.Label,
 			MountPath: evt.MountPoint,
 			Time:      time.Now(),
-			Detail:    err.Error(),
-		}); notifyErr != nil {
-			slog.Warn("notify: delivery failed", "kind", string(notify.KindImportFailed), "error", notifyErr)
-		}
-		bus.Publish(webui.ProgressEvent{Kind: webui.ProgressKindFailed, Owner: entry.Owner, CardUUID: uuid, Error: err.Error()})
+			Detail:    importErr.Error(),
+		})
+		bus.Publish(webui.ProgressEvent{Kind: webui.ProgressKindFailed, Owner: entry.Owner, CardUUID: uuid, Error: importErr.Error()})
 		return
 	}
 
-	if notifyErr := n.Notify(ctx, notify.Event{
+	if err := n.Notify(ctx, notify.Event{
 		Kind:      notify.KindImportCompleted,
 		CardUUID:  uuid,
 		Owner:     entry.Owner,
@@ -260,10 +253,9 @@ func handleMount(
 			BytesCopied:  res.BytesCopied,
 			Duration:     elapsed,
 		},
-	}); notifyErr != nil {
-		slog.Warn("notify: delivery failed", "kind", string(notify.KindImportCompleted), "error", notifyErr)
+	}); err != nil {
+		slog.Warn("notify: delivery failed", "kind", string(notify.KindImportCompleted), "error", err)
 	}
-
 	bus.Publish(webui.ProgressEvent{
 		Kind:        webui.ProgressKindCompleted,
 		Owner:       entry.Owner,
@@ -274,21 +266,6 @@ func handleMount(
 		Failed:      res.Failed,
 		BytesCopied: res.BytesCopied,
 	})
-
-	if err := hist.Append(history.Entry{
-		UUID:        uuid,
-		Owner:       entry.Owner,
-		MountPath:   evt.MountPoint,
-		StartedAt:   start,
-		CompletedAt: time.Now(),
-		Total:       res.Total,
-		Imported:    res.Imported,
-		Skipped:     res.Skipped,
-		Failed:      res.Failed,
-		BytesCopied: res.BytesCopied,
-	}); err != nil {
-		slog.Warn("history: append failed", "error", err)
-	}
 
 	slog.Info("import complete",
 		"owner", entry.Owner,
