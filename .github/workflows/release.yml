@@ -27,6 +27,9 @@ jobs:
       - name: Build UI
         run: make ui
 
+      - name: Restore .gitkeep
+        run: git checkout internal/webui/static/.gitkeep
+
       - uses: goreleaser/goreleaser-action@v7
         with:
           version: "~> v2"
