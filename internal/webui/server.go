@@ -13,7 +13,7 @@ import (
 	"github.com/jmsnll/cardimportd/internal/config"
 )
 
-//go:embed static
+//go:embed all:static
 var staticFiles embed.FS
 
 // ConfigAccessor is a thread-safe accessor pair passed from main.
