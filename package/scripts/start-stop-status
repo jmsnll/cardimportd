@@ -5,15 +5,29 @@ DAEMON=/var/packages/cardimportd/target/cardimportd
 CONFIG=/var/packages/cardimportd/etc/config.yaml
 PIDFILE=/var/packages/cardimportd/var/cardimportd.pid
 LOG=/var/packages/cardimportd/var/cardimportd.log
+STOPPING_FILE=/var/packages/cardimportd/var/.stopping
 
 start_daemon() {
     if [ -f "$PIDFILE" ] && kill -0 "$(cat $PIDFILE)" 2>/dev/null; then
         echo "cardimportd is already running"
         exit 0
     fi
-    "$DAEMON" --config "$CONFIG" >> "$LOG" 2>&1 &
-    echo $! > "$PIDFILE"
-    echo "cardimportd started"
+    rm -f "$STOPPING_FILE"
+    (
+        while [ ! -f "$STOPPING_FILE" ]; do
+            "$DAEMON" --config "$CONFIG" >> "$LOG" 2>&1
+            code=$?
+            [ -f "$STOPPING_FILE" ] && break
+            echo "$(date -Iseconds) cardimportd exited (code $code), restarting in 5s..." >> "$LOG"
+            sleep 5
+        done
+    ) &
+    LOOP_PID=$!
+    # Give the daemon a moment to start, then record its PID
+    sleep 1
+    DAEMON_PID=$(pgrep -P $LOOP_PID cardimportd 2>/dev/null || echo $LOOP_PID)
+    echo "$LOOP_PID" > "$PIDFILE"
+    echo "cardimportd started (watchdog PID $LOOP_PID)"
 }
 
 stop_daemon() {
@@ -21,7 +35,12 @@ stop_daemon() {
         echo "cardimportd is not running"
         exit 0
     fi
-    kill "$(cat $PIDFILE)" && rm -f "$PIDFILE"
+    touch "$STOPPING_FILE"
+    PID=$(cat "$PIDFILE")
+    # Kill the entire process group
+    pkill -P "$PID" 2>/dev/null
+    kill "$PID" 2>/dev/null
+    rm -f "$PIDFILE"
     echo "cardimportd stopped"
 }
 
