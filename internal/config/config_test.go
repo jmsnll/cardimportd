@@ -236,3 +236,20 @@ func TestSaveNoTmpFileLeftBehind(t *testing.T) {
 		t.Errorf("temp file still exists after Save")
 	}
 }
+
+func TestPostImportHookRoundTrip(t *testing.T) {
+	const y = `watch_paths:
+  - /v
+import_root: /v
+post_import_hook: "echo done"
+log_path: /v
+`
+	src := writeTempYAML(t, y)
+	cfg, err := config.Load(src)
+	if err != nil {
+		t.Fatalf("Load: %v", err)
+	}
+	if cfg.PostImportHook != "echo done" {
+		t.Errorf("PostImportHook = %q", cfg.PostImportHook)
+	}
+}

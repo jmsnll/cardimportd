@@ -6,6 +6,7 @@ import (
 	"crypto/rand"
 	"os"
 	"path/filepath"
+	"runtime"
 	"strings"
 	"testing"
 	"time"
@@ -258,5 +259,22 @@ func TestImport_SecondRunSkipsDuplicates(t *testing.T) {
 	}
 	if res2.Total != 1 {
 		t.Errorf("second run: Total = %d, want 1", res2.Total)
+	}
+}
+
+func TestImport_HookCalled(t *testing.T) {
+	if runtime.GOOS == "windows" {
+		t.Skip()
+	}
+	cardDir, dstRoot := t.TempDir(), t.TempDir()
+	marker := filepath.Join(t.TempDir(), "ran")
+	makeFile(t, cardDir, "a.jpg", randomBytes(t, 512))
+	cfg := makeConfig(dstRoot)
+	cfg.PostImportHook = "touch " + marker
+	if _, err := New(cfg, &discardNotifier{}).Import(context.Background(), "J", cardDir); err != nil {
+		t.Fatalf("Import: %v", err)
+	}
+	if _, err := os.Stat(marker); err != nil {
+		t.Error("hook not called")
 	}
 }
