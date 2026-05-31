@@ -2,143 +2,27 @@
   "packages": [
     {
       "package": "cardimportd",
-      "version": "0.2.0-0001",
+      "version": "0.2.1-0001",
       "dname": "Card Importer",
       "desc": "Watches for SD/CFExpress card insertions and imports photos/videos.",
-      "arch": [
-        "apollolake"
-      ],
       "distributor": "jmsnll",
-      "link": "https://jmsnll.github.io/cardimportd/cardimportd-0.2.0-0001-apollolake.spk",
       "qinst": true,
       "qupgrade": true,
-      "qstart": true
+      "qstart": true,
+      "arch": "x86_64",
+      "link": "https://jmsnll.github.io/cardimportd/cardimportd-0.2.1-0001-x86_64.spk"
     },
     {
       "package": "cardimportd",
-      "version": "0.2.0-0001",
+      "version": "0.2.1-0001",
       "dname": "Card Importer",
       "desc": "Watches for SD/CFExpress card insertions and imports photos/videos.",
-      "arch": [
-        "geminilake"
-      ],
       "distributor": "jmsnll",
-      "link": "https://jmsnll.github.io/cardimportd/cardimportd-0.2.0-0001-geminilake.spk",
       "qinst": true,
       "qupgrade": true,
-      "qstart": true
-    },
-    {
-      "package": "cardimportd",
-      "version": "0.2.0-0001",
-      "dname": "Card Importer",
-      "desc": "Watches for SD/CFExpress card insertions and imports photos/videos.",
-      "arch": [
-        "r1000"
-      ],
-      "distributor": "jmsnll",
-      "link": "https://jmsnll.github.io/cardimportd/cardimportd-0.2.0-0001-r1000.spk",
-      "qinst": true,
-      "qupgrade": true,
-      "qstart": true
-    },
-    {
-      "package": "cardimportd",
-      "version": "0.2.0-0001",
-      "dname": "Card Importer",
-      "desc": "Watches for SD/CFExpress card insertions and imports photos/videos.",
-      "arch": [
-        "v1000"
-      ],
-      "distributor": "jmsnll",
-      "link": "https://jmsnll.github.io/cardimportd/cardimportd-0.2.0-0001-v1000.spk",
-      "qinst": true,
-      "qupgrade": true,
-      "qstart": true
-    },
-    {
-      "package": "cardimportd",
-      "version": "0.2.0-0001",
-      "dname": "Card Importer",
-      "desc": "Watches for SD/CFExpress card insertions and imports photos/videos.",
-      "arch": [
-        "denverton"
-      ],
-      "distributor": "jmsnll",
-      "link": "https://jmsnll.github.io/cardimportd/cardimportd-0.2.0-0001-denverton.spk",
-      "qinst": true,
-      "qupgrade": true,
-      "qstart": true
-    },
-    {
-      "package": "cardimportd",
-      "version": "0.2.0-0001",
-      "dname": "Card Importer",
-      "desc": "Watches for SD/CFExpress card insertions and imports photos/videos.",
-      "arch": [
-        "broadwell"
-      ],
-      "distributor": "jmsnll",
-      "link": "https://jmsnll.github.io/cardimportd/cardimportd-0.2.0-0001-broadwell.spk",
-      "qinst": true,
-      "qupgrade": true,
-      "qstart": true
-    },
-    {
-      "package": "cardimportd",
-      "version": "0.2.0-0001",
-      "dname": "Card Importer",
-      "desc": "Watches for SD/CFExpress card insertions and imports photos/videos.",
-      "arch": [
-        "broadwellnk"
-      ],
-      "distributor": "jmsnll",
-      "link": "https://jmsnll.github.io/cardimportd/cardimportd-0.2.0-0001-broadwellnk.spk",
-      "qinst": true,
-      "qupgrade": true,
-      "qstart": true
-    },
-    {
-      "package": "cardimportd",
-      "version": "0.2.0-0001",
-      "dname": "Card Importer",
-      "desc": "Watches for SD/CFExpress card insertions and imports photos/videos.",
-      "arch": [
-        "armada37xx"
-      ],
-      "distributor": "jmsnll",
-      "link": "https://jmsnll.github.io/cardimportd/cardimportd-0.2.0-0001-armada37xx.spk",
-      "qinst": true,
-      "qupgrade": true,
-      "qstart": true
-    },
-    {
-      "package": "cardimportd",
-      "version": "0.2.0-0001",
-      "dname": "Card Importer",
-      "desc": "Watches for SD/CFExpress card insertions and imports photos/videos.",
-      "arch": [
-        "rtd1296"
-      ],
-      "distributor": "jmsnll",
-      "link": "https://jmsnll.github.io/cardimportd/cardimportd-0.2.0-0001-rtd1296.spk",
-      "qinst": true,
-      "qupgrade": true,
-      "qstart": true
-    },
-    {
-      "package": "cardimportd",
-      "version": "0.2.0-0001",
-      "dname": "Card Importer",
-      "desc": "Watches for SD/CFExpress card insertions and imports photos/videos.",
-      "arch": [
-        "rtd1619b"
-      ],
-      "distributor": "jmsnll",
-      "link": "https://jmsnll.github.io/cardimportd/cardimportd-0.2.0-0001-rtd1619b.spk",
-      "qinst": true,
-      "qupgrade": true,
-      "qstart": true
+      "qstart": true,
+      "arch": "armv8",
+      "link": "https://jmsnll.github.io/cardimportd/cardimportd-0.2.1-0001-armv8.spk"
     }
   ]
 }
