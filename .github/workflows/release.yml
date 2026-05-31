@@ -72,3 +72,54 @@ jobs:
             "cardimportd-${{ steps.ver.outputs.spk_version }}-${{ matrix.arch }}.spk"
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  pages:
+    needs: spk
+    runs-on: ubuntu-latest
+    steps:
+      - name: Generate packages.json
+        run: |
+          TAG="${GITHUB_REF_NAME}"
+          SEMVER="${TAG#v}"
+          SPK_VER="${SEMVER}-0001"
+          BASE="https://github.com/jmsnll/cardimportd/releases/download/${TAG}"
+          mkdir -p /tmp/pages
+          cat > /tmp/pages/packages.json <<EOF
+          {
+            "packages": [
+              {
+                "package": "cardimportd",
+                "version": "${SPK_VER}",
+                "dname": "Card Importer",
+                "desc": "Watches for SD/CFExpress card insertions and imports photos/videos.",
+                "arch": ["x86_64"],
+                "distributor": "jmsnll",
+                "link": "${BASE}/cardimportd-${SPK_VER}-x86_64.spk",
+                "qinst": true,
+                "qupgrade": true,
+                "qstart": true
+              },
+              {
+                "package": "cardimportd",
+                "version": "${SPK_VER}",
+                "dname": "Card Importer",
+                "desc": "Watches for SD/CFExpress card insertions and imports photos/videos.",
+                "arch": ["armv8"],
+                "distributor": "jmsnll",
+                "link": "${BASE}/cardimportd-${SPK_VER}-armv8.spk",
+                "qinst": true,
+                "qupgrade": true,
+                "qstart": true
+              }
+            ]
+          }
+          EOF
+
+      - name: Deploy to gh-pages
+        uses: peaceiris/actions-gh-pages@v4
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: /tmp/pages
+          publish_branch: gh-pages
+          keep_files: true
+          commit_message: "Update packages feed for ${{ github.ref_name }}"
