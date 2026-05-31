@@ -1,0 +1,227 @@
+package main
+
+import (
+	"context"
+	"flag"
+	"fmt"
+	"log/slog"
+	"os"
+	"os/exec"
+	"os/signal"
+	"strings"
+	"sync"
+	"syscall"
+	"time"
+
+	"github.com/jmsnll/cardimportd/internal/config"
+	"github.com/jmsnll/cardimportd/internal/importer"
+	"github.com/jmsnll/cardimportd/internal/notify"
+	"github.com/jmsnll/cardimportd/internal/watcher"
+	"github.com/jmsnll/cardimportd/internal/webui"
+)
+
+func main() {
+	cfgPath   := flag.String("config", "/usr/local/etc/cardimportd/config.yaml", "path to config.yaml")
+	webuiPort := flag.Int("webui-port", 8085, "web management UI port (0 to disable)")
+	flag.Parse()
+
+	logger := slog.New(slog.NewJSONHandler(os.Stdout, &slog.HandlerOptions{Level: slog.LevelInfo}))
+	slog.SetDefault(logger)
+
+	initialCfg, err := config.Load(*cfgPath)
+	if err != nil {
+		slog.Error("startup: failed to load config", "path", *cfgPath, "error", err)
+		os.Exit(1)
+	}
+
+	logNotifier := notify.NewLogNotifier(logger)
+	notifiers := []notify.Notifier{logNotifier}
+	if p := initialCfg.Notifications.Pushover; p != nil && p.AppToken != "" && p.UserKey != "" {
+		notifiers = append(notifiers, notify.NewPushoverNotifier(p.AppToken, p.UserKey))
+		slog.Info("pushover notifications enabled")
+	}
+	notifier := notify.NewMultiNotifier(notifiers...)
+
+	// mu guards cfg and imp; both are replaced atomically on config changes.
+	var mu sync.RWMutex
+	cfg := initialCfg
+	imp := importer.New(cfg, notifier)
+
+	getCfg := func() *config.Config {
+		mu.RLock()
+		defer mu.RUnlock()
+		return cfg
+	}
+	setCfg := func(c *config.Config) {
+		mu.Lock()
+		defer mu.Unlock()
+		cfg = c
+		imp = importer.New(c, notifier)
+	}
+	getImp := func() *importer.Importer {
+		mu.RLock()
+		defer mu.RUnlock()
+		return imp
+	}
+
+	w := watcher.New("/proc/mounts", 2*time.Second)
+
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
+	if *webuiPort > 0 {
+		acc := webui.ConfigAccessor{
+			Get:  getCfg,
+			Set:  setCfg,
+			Path: *cfgPath,
+		}
+		go func() {
+			srv := webui.New(acc, *webuiPort)
+			if err := srv.Start(ctx); err != nil {
+				slog.Error("webui: stopped", "error", err)
+			}
+		}()
+	}
+
+	sigCh := make(chan os.Signal, 1)
+	signal.Notify(sigCh, syscall.SIGINT, syscall.SIGTERM, syscall.SIGHUP)
+
+	go func() {
+		if err := w.Start(ctx); err != nil && err != context.Canceled {
+			slog.Error("watcher: stopped unexpectedly", "error", err)
+		}
+	}()
+
+	slog.Info("cardimportd started", "config", *cfgPath, "webui_port", *webuiPort)
+
+	for {
+		select {
+		case sig := <-sigCh:
+			switch sig {
+			case syscall.SIGHUP:
+				newCfg, err := config.Load(*cfgPath)
+				if err != nil {
+					slog.Error("sighup: failed to reload config", "error", err)
+					continue
+				}
+				setCfg(newCfg)
+				slog.Info("sighup: config reloaded")
+			default:
+				slog.Info("shutdown signal received", "signal", sig)
+				cancel()
+				return
+			}
+
+		case evt := <-w.Events():
+			if evt.Action != watcher.Mounted {
+				continue
+			}
+			go handleMount(ctx, getCfg, getImp, notifier, setCfg, evt, *cfgPath)
+		}
+	}
+}
+
+func handleMount(
+	ctx context.Context,
+	getCfg func() *config.Config,
+	getImp func() *importer.Importer,
+	n notify.Notifier,
+	setCfg func(*config.Config),
+	evt watcher.MountEvent,
+	cfgPath string,
+) {
+	cfg := getCfg()
+	imp := getImp()
+	slog.Info("mount detected", "mount_point", evt.MountPoint, "device", evt.Device)
+
+	uuid, err := cardUUID(evt.Device)
+	if err != nil {
+		slog.Warn("could not determine card UUID", "device", evt.Device, "error", err)
+		return
+	}
+
+	slog.Info("card identified", "uuid", uuid, "mount_point", evt.MountPoint)
+
+	entry, ok := cfg.LookupCard(uuid)
+	if !ok || entry.Status == config.StatusPending {
+		if cfg.RegisterPending(uuid) {
+			if err := cfg.Save(cfgPath); err != nil {
+				slog.Error("failed to save pending card", "uuid", uuid, "error", err)
+			} else {
+				setCfg(cfg)
+				slog.Warn("new card registered as pending — edit config to activate",
+					"uuid", uuid, "config", cfgPath)
+			}
+			n.Notify(ctx, notify.Event{
+				Kind:      notify.KindNewCardPending,
+				CardUUID:  uuid,
+				MountPath: evt.MountPoint,
+				Time:      time.Now(),
+				Detail:    "edit config to activate",
+			})
+		}
+		return
+	}
+
+	n.Notify(ctx, notify.Event{
+		Kind:      notify.KindImportStarted,
+		CardUUID:  uuid,
+		Owner:     entry.Owner,
+		MountPath: evt.MountPoint,
+		Time:      time.Now(),
+	})
+
+	start := time.Now()
+	res, err := imp.Import(ctx, entry.Owner, evt.MountPoint)
+	elapsed := time.Since(start)
+
+	if err != nil {
+		n.Notify(ctx, notify.Event{
+			Kind:      notify.KindImportFailed,
+			CardUUID:  uuid,
+			Owner:     entry.Owner,
+			MountPath: evt.MountPoint,
+			Time:      time.Now(),
+			Detail:    err.Error(),
+		})
+		return
+	}
+
+	n.Notify(ctx, notify.Event{
+		Kind:      notify.KindImportCompleted,
+		CardUUID:  uuid,
+		Owner:     entry.Owner,
+		MountPath: evt.MountPoint,
+		Time:      time.Now(),
+		Stats: &notify.ImportStats{
+			Total:       res.Total,
+			Imported:    res.Imported,
+			Skipped:     res.Skipped,
+			Failed:      res.Failed,
+			BytesCopied: res.BytesCopied,
+			Duration:    elapsed,
+		},
+	})
+
+	slog.Info("import complete",
+		"owner", entry.Owner,
+		"total", res.Total,
+		"imported", res.Imported,
+		"skipped", res.Skipped,
+		"failed", res.Failed,
+		"bytes", res.BytesCopied,
+		"duration", fmt.Sprintf("%.1fs", elapsed.Seconds()),
+	)
+}
+
+func cardUUID(device string) (string, error) {
+	out, err := exec.Command("blkid", "-s", "UUID", "-o", "value", device).Output()
+	if err != nil {
+		return "", fmt.Errorf("blkid %s: %w", device, err)
+	}
+	uuid := strings.TrimSpace(string(out))
+	if uuid == "" {
+		return "", fmt.Errorf("blkid returned empty UUID for %s", device)
+	}
+	return uuid, nil
+}

@@ -25,16 +25,16 @@ var defaultFileExtensions = []string{
 
 // CardEntry holds the per-card configuration keyed by filesystem UUID.
 type CardEntry struct {
-	Owner     string     `yaml:"owner"`
-	Status    CardStatus `yaml:"status"`
-	FirstSeen *time.Time `yaml:"first_seen,omitempty"`
+	Owner     string     `yaml:"owner"      json:"owner"`
+	Status    CardStatus `yaml:"status"     json:"status"`
+	FirstSeen *time.Time `yaml:"first_seen,omitempty" json:"first_seen,omitempty"`
 }
 
 
 // PushoverConfig holds credentials for the Pushover push notification service.
 type PushoverConfig struct {
-	AppToken string `yaml:"app_token"`
-	UserKey  string `yaml:"user_key"`
+	AppToken string `yaml:"app_token" json:"app_token"`
+	UserKey  string `yaml:"user_key"  json:"user_key"`
 }
 
 // NotificationConfig groups optional push notification adapters.
@@ -44,12 +44,12 @@ type NotificationConfig struct {
 
 // Config is the top-level configuration structure for cardimportd.
 type Config struct {
-	WatchPaths     []string             `yaml:"watch_paths"`
-	ImportRoot     string               `yaml:"import_root"`
-	Cards          map[string]CardEntry `yaml:"cards"`
-	FileExtensions []string             `yaml:"file_extensions"`
-	LogPath        string               `yaml:"log_path"`
-	Notifications  NotificationConfig   `yaml:"notifications,omitempty"`
+	WatchPaths     []string             `yaml:"watch_paths"      json:"watch_paths"`
+	ImportRoot     string               `yaml:"import_root"      json:"import_root"`
+	Cards          map[string]CardEntry `yaml:"cards"            json:"cards"`
+	FileExtensions []string             `yaml:"file_extensions"  json:"file_extensions"`
+	LogPath        string               `yaml:"log_path"         json:"log_path"`
+	Notifications  NotificationConfig   `yaml:"notifications,omitempty" json:"notifications,omitempty"`
 }
 
 // Load reads and parses the YAML config at path.

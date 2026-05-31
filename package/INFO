@@ -5,5 +5,8 @@ description="Watches for SD/CFExpress card insertions and imports photos/videos 
 displayname="Card Importer"
 maintainer="jmsnll"
 arch="x86_64"
+adminprotocol="http"
+adminport="8085"
+adminurl="/"
 # For ARM-based NAS (DS220j, DS418, etc.) change arch to "armv8"
 # Build both binaries with: make build-dsm-amd64 build-dsm-arm64

@@ -1,0 +1,415 @@
+/* =========================================================
+   Card Importer – DSM-inspired design system
+   ========================================================= */
+
+*, *::before, *::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  font-size: 14px;
+  color: #333333;
+  background: #f4f4f4;
+  min-height: 100vh;
+}
+
+/* ----------------------------------------------------------
+   Header
+   ---------------------------------------------------------- */
+header {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  height: 48px;
+  padding: 0 16px;
+  background: #1a6aad;
+  color: #ffffff;
+}
+
+.header-title {
+  font-size: 16px;
+  font-weight: 600;
+  letter-spacing: 0.01em;
+}
+
+.header-sub {
+  font-size: 12px;
+  color: rgba(255,255,255,0.65);
+}
+
+/* ----------------------------------------------------------
+   Tab bar
+   ---------------------------------------------------------- */
+.tab-bar {
+  display: flex;
+  flex-direction: row;
+  background: #ffffff;
+  border-bottom: 1px solid #e0e0e0;
+  padding: 0 8px;
+}
+
+.tab-btn {
+  width: 120px;
+  height: 40px;
+  border: none;
+  border-bottom: 3px solid transparent;
+  background: transparent;
+  color: #888888;
+  font-family: inherit;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: color 0.15s, border-color 0.15s;
+}
+
+.tab-btn:hover {
+  color: #1a6aad;
+}
+
+.tab-btn.active {
+  color: #1a6aad;
+  border-bottom-color: #1a6aad;
+}
+
+/* ----------------------------------------------------------
+   Main / panels
+   ---------------------------------------------------------- */
+main {
+  padding: 24px 16px;
+  max-width: 960px;
+  margin: 0 auto;
+}
+
+.panel {
+  display: none;
+}
+
+.panel.active {
+  display: block;
+}
+
+/* ----------------------------------------------------------
+   Section heading inside a panel
+   ---------------------------------------------------------- */
+.panel-heading {
+  font-size: 15px;
+  font-weight: 600;
+  color: #333333;
+  margin-bottom: 16px;
+}
+
+/* ----------------------------------------------------------
+   Card surface (white box)
+   ---------------------------------------------------------- */
+.surface {
+  background: #ffffff;
+  border: 1px solid #e0e0e0;
+  border-radius: 4px;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+  padding: 20px;
+  margin-bottom: 20px;
+}
+
+/* ----------------------------------------------------------
+   Cards table
+   ---------------------------------------------------------- */
+.card-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+}
+
+.card-table th {
+  text-align: left;
+  padding: 8px 10px;
+  font-weight: 600;
+  color: #888888;
+  text-transform: uppercase;
+  font-size: 11px;
+  letter-spacing: 0.04em;
+  border-bottom: 2px solid #e0e0e0;
+  background: #fafafa;
+}
+
+.card-table td {
+  padding: 10px 10px;
+  border-bottom: 1px solid #f0f0f0;
+  vertical-align: middle;
+}
+
+.card-table tr:last-child td {
+  border-bottom: none;
+}
+
+.card-table tbody tr:nth-child(even) td {
+  background: #fafafa;
+}
+
+.card-table tbody tr:hover td {
+  background: #f0f6ff;
+}
+
+.uuid-cell {
+  font-family: "SF Mono", "Consolas", "Menlo", monospace;
+  font-size: 12px;
+  color: #555;
+}
+
+.actions-cell {
+  white-space: nowrap;
+}
+
+/* ----------------------------------------------------------
+   Badges
+   ---------------------------------------------------------- */
+.badge {
+  display: inline-block;
+  padding: 2px 8px;
+  border-radius: 10px;
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+
+.badge-active {
+  background: #dff0d8;
+  color: #3c763d;
+}
+
+.badge-pending {
+  background: #fcf8e3;
+  color: #8a6d3b;
+  border: 1px solid #f0ad4e;
+}
+
+/* ----------------------------------------------------------
+   Buttons
+   ---------------------------------------------------------- */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  height: 32px;
+  padding: 0 14px;
+  border: 1px solid transparent;
+  border-radius: 3px;
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background 0.15s, border-color 0.15s, opacity 0.15s;
+  white-space: nowrap;
+}
+
+.btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.btn-primary {
+  background: #1a6aad;
+  border-color: #1a6aad;
+  color: #ffffff;
+}
+
+.btn-primary:hover:not(:disabled) {
+  background: #155a96;
+  border-color: #155a96;
+}
+
+.btn-success {
+  background: #5cb85c;
+  border-color: #4cae4c;
+  color: #ffffff;
+}
+
+.btn-success:hover:not(:disabled) {
+  background: #4cae4c;
+  border-color: #398439;
+}
+
+.btn-danger {
+  background: #ffffff;
+  border-color: #d9534f;
+  color: #d9534f;
+}
+
+.btn-danger:hover:not(:disabled) {
+  background: #d9534f;
+  color: #ffffff;
+}
+
+.btn-secondary {
+  background: #ffffff;
+  border-color: #cccccc;
+  color: #555555;
+}
+
+.btn-secondary:hover:not(:disabled) {
+  background: #f5f5f5;
+  border-color: #aaaaaa;
+}
+
+.btn-sm {
+  height: 26px;
+  padding: 0 10px;
+  font-size: 12px;
+}
+
+.btn + .btn {
+  margin-left: 6px;
+}
+
+/* ----------------------------------------------------------
+   Inline edit row
+   ---------------------------------------------------------- */
+.inline-edit-input {
+  height: 28px;
+  padding: 0 8px;
+  border: 1px solid #1a6aad;
+  border-radius: 3px;
+  font-family: inherit;
+  font-size: 13px;
+  width: 140px;
+  outline: none;
+}
+
+.inline-edit-input:focus {
+  box-shadow: 0 0 0 2px rgba(26,106,173,0.2);
+}
+
+/* ----------------------------------------------------------
+   Forms
+   ---------------------------------------------------------- */
+.form-group {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-bottom: 16px;
+}
+
+.form-group label {
+  font-size: 13px;
+  font-weight: 600;
+  color: #555555;
+}
+
+.form-group .form-hint {
+  font-size: 12px;
+  color: #888888;
+  margin-top: 2px;
+}
+
+input[type="text"],
+textarea,
+select {
+  width: 100%;
+  height: 36px;
+  padding: 0 10px;
+  border: 1px solid #e0e0e0;
+  border-radius: 3px;
+  font-family: inherit;
+  font-size: 13px;
+  color: #333333;
+  background: #ffffff;
+  transition: border-color 0.15s, box-shadow 0.15s;
+  outline: none;
+}
+
+textarea {
+  height: auto;
+  min-height: 80px;
+  padding: 8px 10px;
+  resize: vertical;
+}
+
+input[type="text"]:focus,
+textarea:focus,
+select:focus {
+  border-color: #1a6aad;
+  box-shadow: 0 0 0 2px rgba(26,106,173,0.15);
+}
+
+.form-actions {
+  display: flex;
+  gap: 8px;
+  margin-top: 8px;
+}
+
+/* ----------------------------------------------------------
+   Empty state
+   ---------------------------------------------------------- */
+.empty-state {
+  text-align: center;
+  padding: 48px 24px;
+  color: #888888;
+}
+
+.empty-state-icon {
+  font-size: 40px;
+  margin-bottom: 12px;
+  display: block;
+}
+
+.empty-state-title {
+  font-size: 15px;
+  font-weight: 600;
+  color: #555555;
+  margin-bottom: 8px;
+}
+
+.empty-state-body {
+  font-size: 13px;
+  line-height: 1.6;
+  max-width: 360px;
+  margin: 0 auto;
+}
+
+/* ----------------------------------------------------------
+   Note / info block
+   ---------------------------------------------------------- */
+.note {
+  background: #f0f6ff;
+  border-left: 3px solid #1a6aad;
+  border-radius: 0 3px 3px 0;
+  padding: 10px 14px;
+  font-size: 13px;
+  color: #555555;
+  margin-bottom: 16px;
+}
+
+/* ----------------------------------------------------------
+   Toast
+   ---------------------------------------------------------- */
+#toast {
+  position: fixed;
+  bottom: 24px;
+  right: 24px;
+  width: 300px;
+  padding: 12px 16px;
+  border-radius: 4px;
+  font-size: 13px;
+  font-weight: 500;
+  color: #ffffff;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+  z-index: 9999;
+  transform: translateX(340px);
+  transition: transform 0.25s ease;
+  pointer-events: none;
+}
+
+#toast.toast-visible {
+  transform: translateX(0);
+}
+
+#toast.toast-success {
+  background: #5cb85c;
+}
+
+#toast.toast-error {
+  background: #d9534f;
+}

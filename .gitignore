@@ -1,4 +1,4 @@
-cardimportd
+/cardimportd
 *.tmp
 config.yaml
 *.spk
