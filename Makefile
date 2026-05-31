@@ -51,6 +51,6 @@ _spk:
 	 sed -e "s/arch=\"x86_64\"/arch=\"$(ARCH)\"/" \
 	     -e "s/version=\"[^\"]*\"/version=\"$(SPK_VERSION)\"/" > $$tmpdir/INFO && \
 	 chmod +x $$tmpdir/scripts/* && \
-	 tar czf $(BINARY)-$(SPK_VERSION)-$(ARCH).spk -C $$tmpdir . && \
+	 tar cf $(BINARY)-$(SPK_VERSION)-$(ARCH).spk -C $$tmpdir . && \
 	 rm -rf $$tmpdir && \
 	 echo "Created $(BINARY)-$(SPK_VERSION)-$(ARCH).spk"
