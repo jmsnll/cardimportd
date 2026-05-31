@@ -80,7 +80,16 @@ func main() {
 	getCfg := func() *config.Config {
 		mu.RLock()
 		defer mu.RUnlock()
-		return cfg
+		// Return a copy so callers can mutate the Cards map (e.g. RegisterPending)
+		// without touching shared state. setCfg is then used to promote changes back.
+		c := *cfg
+		c.Cards = make(map[string]config.CardEntry, len(cfg.Cards))
+		for k, v := range cfg.Cards {
+			c.Cards[k] = v
+		}
+		c.WatchPaths = append([]string(nil), cfg.WatchPaths...)
+		c.FileExtensions = append([]string(nil), cfg.FileExtensions...)
+		return &c
 	}
 	setCfg := func(c *config.Config) {
 		mu.Lock()
