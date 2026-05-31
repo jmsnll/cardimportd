@@ -3,12 +3,17 @@ package importer
 import (
 	"path/filepath"
 	"testing"
+	"text/template"
 	"time"
 )
 
 func TestResolveDestDir_Default(t *testing.T) {
 	dt := time.Date(2026, 5, 28, 0, 0, 0, 0, time.UTC)
-	got, err := resolveDestDir("/photos", "", "James", "UUID", "", dt)
+	tmpl, err := template.New("dest").Parse(defaultDestTemplate)
+	if err != nil {
+		t.Fatalf("parse template: %v", err)
+	}
+	got, err := resolveDestDir("/photos", tmpl, "James", "UUID", "", dt)
 	if err != nil {
 		t.Fatalf("resolveDestDir: %v", err)
 	}
@@ -20,7 +25,11 @@ func TestResolveDestDir_Default(t *testing.T) {
 
 func TestResolveDestDir_Custom(t *testing.T) {
 	dt := time.Date(2026, 5, 28, 0, 0, 0, 0, time.UTC)
-	got, err := resolveDestDir("/root", "{{ .Owner }}/{{ .Year }}-{{ .Month }}", "Alice", "", "", dt)
+	tmpl, err := template.New("dest").Parse("{{ .Owner }}/{{ .Year }}-{{ .Month }}")
+	if err != nil {
+		t.Fatalf("parse template: %v", err)
+	}
+	got, err := resolveDestDir("/root", tmpl, "Alice", "", "", dt)
 	if err != nil {
 		t.Fatalf("resolveDestDir: %v", err)
 	}
@@ -31,7 +40,7 @@ func TestResolveDestDir_Custom(t *testing.T) {
 }
 
 func TestResolveDestDir_Invalid(t *testing.T) {
-	if _, err := resolveDestDir("/r", "{{ .Bad", "J", "", "", time.Now()); err == nil {
+	if _, err := template.New("dest").Parse("{{ .Bad"); err == nil {
 		t.Error("expected error for invalid template")
 	}
 }

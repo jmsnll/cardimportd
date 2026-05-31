@@ -7,6 +7,7 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"text/template"
 
 	"github.com/jmsnll/cardimportd/internal/config"
 	"github.com/jmsnll/cardimportd/internal/meta"
@@ -44,12 +45,25 @@ func (imp *Importer) Import(ctx context.Context, owner, mountPath, cardUUID stri
 		return Result{}, fmt.Errorf("preflight: %w", err)
 	}
 
+	cardEntry, _ := imp.cfg.LookupCard(cardUUID)
+	tmplStr := cardEntry.DestinationTemplate
+	if tmplStr == "" {
+		tmplStr = imp.cfg.DestinationTemplate
+	}
+	if tmplStr == "" {
+		tmplStr = defaultDestTemplate
+	}
+	destTmpl, err := template.New("dest").Parse(tmplStr)
+	if err != nil {
+		return Result{}, fmt.Errorf("destination template: %w", err)
+	}
+
 	ext := make(map[string]bool, len(imp.cfg.FileExtensions))
 	for _, e := range imp.cfg.FileExtensions {
 		ext[strings.ToLower(e)] = true
 	}
 
-	err := filepath.WalkDir(mountPath, func(path string, d os.DirEntry, walkErr error) error {
+	err = filepath.WalkDir(mountPath, func(path string, d os.DirEntry, walkErr error) error {
 		if walkErr != nil {
 			slog.Warn("importer: walk error", "path", path, "error", walkErr)
 			return nil
@@ -65,7 +79,7 @@ func (imp *Importer) Import(ctx context.Context, owner, mountPath, cardUUID stri
 		}
 
 		res.Total++
-		n, hash, dstPath, action, mirrFail, err := imp.importFile(ctx, owner, path, cardUUID)
+		n, hash, dstPath, action, mirrFail, err := imp.importFile(ctx, owner, path, cardUUID, destTmpl)
 		if err != nil {
 			slog.Error("importer: failed", "src", path, "error", err)
 			res.Failed++
@@ -104,15 +118,10 @@ func (imp *Importer) Import(ctx context.Context, owner, mountPath, cardUUID stri
 	return res, err
 }
 
-func (imp *Importer) importFile(ctx context.Context, owner, srcPath, cardUUID string) (n int64, hash string, dstPath string, action dupAction, mirrorFailed bool, err error) {
+func (imp *Importer) importFile(ctx context.Context, owner, srcPath, cardUUID string, destTmpl *template.Template) (n int64, hash string, dstPath string, action dupAction, mirrorFailed bool, err error) {
 	m := meta.Extract(srcPath)
 
-	cardEntry, _ := imp.cfg.LookupCard(cardUUID)
-	templateStr := cardEntry.DestinationTemplate
-	if templateStr == "" {
-		templateStr = imp.cfg.DestinationTemplate
-	}
-	dstDir, err := resolveDestDir(imp.cfg.ImportRoot, templateStr, owner, cardUUID, m.CameraModel, m.DateTimeOriginal)
+	dstDir, err := resolveDestDir(imp.cfg.ImportRoot, destTmpl, owner, cardUUID, m.CameraModel, m.DateTimeOriginal)
 	if err != nil {
 		return 0, "", "", 0, false, fmt.Errorf("resolve dest: %w", err)
 	}
