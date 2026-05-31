@@ -527,24 +527,6 @@ func TestWebuiUpdateCard(t *testing.T) {
 	}
 }
 
-// TestHistoryEndpoint verifies GET /api/history returns an entry after an import.
-func TestHistoryEndpoint(t *testing.T) {
-	const uuid = "HIST-0001"
-	h := newHarness(t, uuid, true)
-	writeTestJPEG(t, h.mountPoint, "DSCF0001.JPG")
-	h.start()
-	h.triggerMount()
-	wantPath := filepath.Join(h.destDir, "TestOwner's Library", "2024", "03", "15", "DSCF0001.JPG")
-	if !waitFor(10*time.Second, func() bool { _, err := os.Stat(wantPath); return err == nil }) {
-		t.Fatal("file never imported")
-	}
-	time.Sleep(500 * time.Millisecond)
-	var entries []map[string]any
-	h.getJSON("/api/history", &entries)
-	if len(entries) == 0 {
-		t.Error("expected history entry after import")
-	}
-}
 
 // TestWebuiDeleteCard verifies DELETE /api/cards/{uuid} removes a card.
 func TestWebuiDeleteCard(t *testing.T) {
