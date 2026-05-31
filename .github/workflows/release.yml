@@ -77,13 +77,25 @@ jobs:
     needs: spk
     runs-on: ubuntu-latest
     steps:
+      # DSM Package Center does not follow GitHub's 302 redirect for release
+      # assets, so we serve the SPK files directly from GitHub Pages instead.
+      - name: Download SPK files
+        run: |
+          TAG="${GITHUB_REF_NAME}"
+          SEMVER="${TAG#v}"
+          SPK_VER="${SEMVER}-0001"
+          mkdir -p /tmp/pages
+          curl -fsSL -o /tmp/pages/cardimportd-${SPK_VER}-x86_64.spk \
+            "https://github.com/jmsnll/cardimportd/releases/download/${TAG}/cardimportd-${SPK_VER}-x86_64.spk"
+          curl -fsSL -o /tmp/pages/cardimportd-${SPK_VER}-armv8.spk \
+            "https://github.com/jmsnll/cardimportd/releases/download/${TAG}/cardimportd-${SPK_VER}-armv8.spk"
+
       - name: Generate packages.json
         run: |
           TAG="${GITHUB_REF_NAME}"
           SEMVER="${TAG#v}"
           SPK_VER="${SEMVER}-0001"
-          BASE="https://github.com/jmsnll/cardimportd/releases/download/${TAG}"
-          mkdir -p /tmp/pages
+          BASE="https://jmsnll.github.io/cardimportd"
           cat > /tmp/pages/packages.json <<EOF
           {
             "packages": [
