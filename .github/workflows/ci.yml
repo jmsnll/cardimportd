@@ -31,5 +31,12 @@ jobs:
       - name: Build UI
         run: make ui
 
+      - name: Check UI build is up to date
+        run: |
+          if ! git diff --exit-code internal/webui/static/; then
+            echo "::error::Built UI assets differ from committed files. Run 'make ui' and commit the updated internal/webui/static/ directory."
+            exit 1
+          fi
+
       - name: build
         run: go build ./...
