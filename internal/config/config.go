@@ -52,6 +52,16 @@ type Config struct {
 	Notifications  NotificationConfig   `yaml:"notifications,omitempty" json:"notifications,omitempty"`
 }
 
+// Default returns a minimal working configuration seeded with Synology-typical paths.
+func Default() *Config {
+	return &Config{
+		WatchPaths:     []string{"/volumeUSB1/usbshare", "/volumeUSB2/usbshare"},
+		ImportRoot:     "/volume1/photos",
+		Cards:          make(map[string]CardEntry),
+		FileExtensions: append([]string(nil), defaultFileExtensions...),
+	}
+}
+
 // Load reads and parses the YAML config at path.
 // Unknown YAML keys are rejected. FileExtensions defaults if empty.
 func Load(path string) (*Config, error) {

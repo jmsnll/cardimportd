@@ -2,12 +2,15 @@ package main
 
 import (
 	"context"
+	"errors"
 	"flag"
 	"fmt"
+	"io/fs"
 	"log/slog"
 	"os"
 	"os/exec"
 	"os/signal"
+	"path/filepath"
 	"strings"
 	"sync"
 	"syscall"
@@ -32,8 +35,18 @@ func main() {
 
 	initialCfg, err := config.Load(*cfgPath)
 	if err != nil {
-		slog.Error("startup: failed to load config", "path", *cfgPath, "error", err)
-		os.Exit(1)
+		if !errors.Is(err, fs.ErrNotExist) {
+			slog.Error("startup: failed to load config", "path", *cfgPath, "error", err)
+			os.Exit(1)
+		}
+		initialCfg = config.Default()
+		if mkErr := os.MkdirAll(filepath.Dir(*cfgPath), 0o755); mkErr == nil {
+			if saveErr := initialCfg.Save(*cfgPath); saveErr == nil {
+				slog.Info("startup: no config found, wrote defaults — edit to configure", "path", *cfgPath)
+			} else {
+				slog.Warn("startup: no config found, could not write defaults", "path", *cfgPath, "error", saveErr)
+			}
+		}
 	}
 
 	logNotifier := notify.NewLogNotifier(logger)
