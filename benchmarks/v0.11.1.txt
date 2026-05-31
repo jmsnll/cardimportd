@@ -1,0 +1,177 @@
+goos: linux
+goarch: amd64
+pkg: github.com/jmsnll/cardimportd/internal/meta
+cpu: AMD EPYC 9V74 80-Core Processor                
+BenchmarkExtractEXIFFromBytes-4   	     830	   1364525 ns/op	  546677 B/op	   11132 allocs/op
+BenchmarkExtractEXIFFromBytes-4   	    1202	   1026556 ns/op	  546667 B/op	   11132 allocs/op
+BenchmarkExtractEXIFFromBytes-4   	    1195	    994751 ns/op	  546666 B/op	   11132 allocs/op
+BenchmarkExtractEXIFFromBytes-4   	    1164	   1009802 ns/op	  546666 B/op	   11132 allocs/op
+BenchmarkExtractEXIFFromBytes-4   	    1220	    985541 ns/op	  546666 B/op	   11132 allocs/op
+BenchmarkExtractJPEGFile-4        	    1027	   1018865 ns/op	  547347 B/op	   11136 allocs/op
+BenchmarkExtractJPEGFile-4        	    1184	   1007317 ns/op	  547347 B/op	   11136 allocs/op
+BenchmarkExtractJPEGFile-4        	    1111	   1011569 ns/op	  547347 B/op	   11136 allocs/op
+BenchmarkExtractJPEGFile-4        	    1184	   1000719 ns/op	  547347 B/op	   11136 allocs/op
+BenchmarkExtractJPEGFile-4        	    1196	   1002726 ns/op	  547346 B/op	   11136 allocs/op
+BenchmarkExtractFallbackMtime-4   	  720394	      1703 ns/op	     272 B/op	       2 allocs/op
+BenchmarkExtractFallbackMtime-4   	  728041	      1685 ns/op	     272 B/op	       2 allocs/op
+BenchmarkExtractFallbackMtime-4   	  668127	      1680 ns/op	     272 B/op	       2 allocs/op
+BenchmarkExtractFallbackMtime-4   	  704895	      1646 ns/op	     272 B/op	       2 allocs/op
+BenchmarkExtractFallbackMtime-4   	  654622	      1657 ns/op	     272 B/op	       2 allocs/op
+PASS
+ok  	github.com/jmsnll/cardimportd/internal/meta	17.566s
+2026/05/31 21:36:29 INFO preflight: disk space check source_bytes=2054 available_bytes=94594990080 required_bytes=2259
+2026/05/31 21:36:29 INFO importer: imported src=/tmp/TestImport_BasicWalk4002621352/001/DCIM/100FUJI/DSCF0003.RAF dst="/tmp/TestImport_BasicWalk4002621352/002/James's Library/2026/05/31/DSCF0003.RAF" bytes=1024 action=0 meta_source=2
+2026/05/31 21:36:29 INFO importer: imported src=/tmp/TestImport_BasicWalk4002621352/001/DSCF0001.jpg dst="/tmp/TestImport_BasicWalk4002621352/002/James's Library/2026/05/31/DSCF0001.jpg" bytes=512 action=0 meta_source=2
+2026/05/31 21:36:29 INFO importer: imported src=/tmp/TestImport_BasicWalk4002621352/001/DSCF0002.jpg dst="/tmp/TestImport_BasicWalk4002621352/002/James's Library/2026/05/31/DSCF0002.jpg" bytes=512 action=0 meta_source=2
+2026/05/31 21:36:29 INFO preflight: disk space check source_bytes=262 available_bytes=94595006464 required_bytes=288
+2026/05/31 21:36:29 INFO importer: imported src=/tmp/TestImport_SkipUnsupportedExtensions4087302479/001/photo.jpg dst="/tmp/TestImport_SkipUnsupportedExtensions4087302479/002/James's Library/2026/05/31/photo.jpg" bytes=256 action=0 meta_source=2
+2026/05/31 21:36:29 INFO preflight: disk space check source_bytes=1024 available_bytes=94595006464 required_bytes=1126
+2026/05/31 21:36:29 INFO importer: imported src=/tmp/TestImport_ManifestWritten2798583900/001/a.jpg dst="/tmp/TestImport_ManifestWritten2798583900/002/James's Library/2026/05/31/a.jpg" bytes=512 action=0 meta_source=2
+2026/05/31 21:36:29 INFO importer: imported src=/tmp/TestImport_ManifestWritten2798583900/001/b.jpg dst="/tmp/TestImport_ManifestWritten2798583900/002/James's Library/2026/05/31/b.jpg" bytes=512 action=0 meta_source=2
+2026/05/31 21:36:29 INFO preflight: disk space check source_bytes=512 available_bytes=94595002368 required_bytes=563
+2026/05/31 21:36:29 INFO importer: imported src=/tmp/TestImport_ManifestDisabled1422519742/001/a.jpg dst="/tmp/TestImport_ManifestDisabled1422519742/002/James's Library/2026/05/31/a.jpg" bytes=512 action=0 meta_source=2
+2026/05/31 21:36:29 INFO preflight: disk space check source_bytes=512 available_bytes=94595002368 required_bytes=563
+2026/05/31 21:36:29 INFO importer: imported src=/tmp/TestImport_CustomTemplate2352582590/001/a.jpg dst=/tmp/TestImport_CustomTemplate2352582590/002/James/shots/2026/a.jpg bytes=512 action=0 meta_source=2
+2026/05/31 21:36:29 INFO preflight: disk space check source_bytes=512 available_bytes=94594990080 required_bytes=563
+2026/05/31 21:36:29 INFO importer: imported src=/tmp/TestImport_MirrorCopied474904993/001/a.jpg dst="/tmp/TestImport_MirrorCopied474904993/002/James's Library/2026/05/31/a.jpg" bytes=512 action=0 meta_source=2
+2026/05/31 21:36:29 INFO preflight: disk space check source_bytes=512 available_bytes=94594990080 required_bytes=563
+2026/05/31 21:36:29 INFO importer: imported src=/tmp/TestImport_MirrorFailDoesNotAbortPrimary822651429/001/a.jpg dst="/tmp/TestImport_MirrorFailDoesNotAbortPrimary822651429/002/James's Library/2026/05/31/a.jpg" bytes=512 action=0 meta_source=2
+2026/05/31 21:36:29 WARN importer: mirror mkdir failed error="mkdir /this: permission denied"
+2026/05/31 21:36:29 INFO preflight: disk space check source_bytes=512 available_bytes=94594990080 required_bytes=563
+2026/05/31 21:36:29 INFO importer: imported src=/tmp/TestImport_SecondRunSkipsDuplicates2669731977/001/DSCF0001.jpg dst="/tmp/TestImport_SecondRunSkipsDuplicates2669731977/002/James's Library/2026/05/31/DSCF0001.jpg" bytes=512 action=0 meta_source=2
+2026/05/31 21:36:29 INFO preflight: disk space check source_bytes=512 available_bytes=94594969600 required_bytes=563
+2026/05/31 21:36:29 INFO preflight: disk space check source_bytes=512 available_bytes=94594985984 required_bytes=563
+2026/05/31 21:36:29 INFO importer: imported src=/tmp/TestImport_HookCalled3666630540/001/a.jpg dst="/tmp/TestImport_HookCalled3666630540/002/J's Library/2026/05/31/a.jpg" bytes=512 action=0 meta_source=2
+2026/05/31 21:36:29 INFO preflight: disk space check source_bytes=100 available_bytes=94594985984 required_bytes=110
+2026/05/31 21:36:29 INFO preflight: disk space check source_bytes=100 available_bytes=94594985984 required_bytes=1073741824000000
+2026/05/31 21:36:29 INFO preflight: disk space check source_bytes=2054 available_bytes=94594969600 required_bytes=2259
+2026/05/31 21:36:29 INFO importer: imported src=/tmp/TestImport_BasicWalk320958426/001/DCIM/100FUJI/DSCF0003.RAF dst="/tmp/TestImport_BasicWalk320958426/002/James's Library/2026/05/31/DSCF0003.RAF" bytes=1024 action=0 meta_source=2
+2026/05/31 21:36:29 INFO importer: imported src=/tmp/TestImport_BasicWalk320958426/001/DSCF0001.jpg dst="/tmp/TestImport_BasicWalk320958426/002/James's Library/2026/05/31/DSCF0001.jpg" bytes=512 action=0 meta_source=2
+2026/05/31 21:36:29 INFO importer: imported src=/tmp/TestImport_BasicWalk320958426/001/DSCF0002.jpg dst="/tmp/TestImport_BasicWalk320958426/002/James's Library/2026/05/31/DSCF0002.jpg" bytes=512 action=0 meta_source=2
+2026/05/31 21:36:29 INFO preflight: disk space check source_bytes=262 available_bytes=94594977792 required_bytes=288
+2026/05/31 21:36:29 INFO importer: imported src=/tmp/TestImport_SkipUnsupportedExtensions2978346068/001/photo.jpg dst="/tmp/TestImport_SkipUnsupportedExtensions2978346068/002/James's Library/2026/05/31/photo.jpg" bytes=256 action=0 meta_source=2
+2026/05/31 21:36:29 INFO preflight: disk space check source_bytes=1024 available_bytes=94594977792 required_bytes=1126
+2026/05/31 21:36:29 INFO importer: imported src=/tmp/TestImport_ManifestWritten2621900760/001/a.jpg dst="/tmp/TestImport_ManifestWritten2621900760/002/James's Library/2026/05/31/a.jpg" bytes=512 action=0 meta_source=2
+2026/05/31 21:36:29 INFO importer: imported src=/tmp/TestImport_ManifestWritten2621900760/001/b.jpg dst="/tmp/TestImport_ManifestWritten2621900760/002/James's Library/2026/05/31/b.jpg" bytes=512 action=0 meta_source=2
+2026/05/31 21:36:29 INFO preflight: disk space check source_bytes=512 available_bytes=94594973696 required_bytes=563
+2026/05/31 21:36:29 INFO importer: imported src=/tmp/TestImport_ManifestDisabled3273018491/001/a.jpg dst="/tmp/TestImport_ManifestDisabled3273018491/002/James's Library/2026/05/31/a.jpg" bytes=512 action=0 meta_source=2
+2026/05/31 21:36:29 INFO preflight: disk space check source_bytes=512 available_bytes=94594973696 required_bytes=563
+2026/05/31 21:36:29 INFO importer: imported src=/tmp/TestImport_CustomTemplate1028990159/001/a.jpg dst=/tmp/TestImport_CustomTemplate1028990159/002/James/shots/2026/a.jpg bytes=512 action=0 meta_source=2
+2026/05/31 21:36:29 INFO preflight: disk space check source_bytes=512 available_bytes=94594969600 required_bytes=563
+2026/05/31 21:36:29 INFO importer: imported src=/tmp/TestImport_MirrorCopied1392983473/001/a.jpg dst="/tmp/TestImport_MirrorCopied1392983473/002/James's Library/2026/05/31/a.jpg" bytes=512 action=0 meta_source=2
+2026/05/31 21:36:29 INFO preflight: disk space check source_bytes=512 available_bytes=94594969600 required_bytes=563
+2026/05/31 21:36:29 INFO importer: imported src=/tmp/TestImport_MirrorFailDoesNotAbortPrimary1343384016/001/a.jpg dst="/tmp/TestImport_MirrorFailDoesNotAbortPrimary1343384016/002/James's Library/2026/05/31/a.jpg" bytes=512 action=0 meta_source=2
+2026/05/31 21:36:29 WARN importer: mirror mkdir failed error="mkdir /this: permission denied"
+2026/05/31 21:36:29 INFO preflight: disk space check source_bytes=512 available_bytes=94594969600 required_bytes=563
+2026/05/31 21:36:29 INFO importer: imported src=/tmp/TestImport_SecondRunSkipsDuplicates2699458962/001/DSCF0001.jpg dst="/tmp/TestImport_SecondRunSkipsDuplicates2699458962/002/James's Library/2026/05/31/DSCF0001.jpg" bytes=512 action=0 meta_source=2
+2026/05/31 21:36:29 INFO preflight: disk space check source_bytes=512 available_bytes=94594949120 required_bytes=563
+2026/05/31 21:36:29 INFO preflight: disk space check source_bytes=512 available_bytes=94594965504 required_bytes=563
+2026/05/31 21:36:29 INFO importer: imported src=/tmp/TestImport_HookCalled176367867/001/a.jpg dst="/tmp/TestImport_HookCalled176367867/002/J's Library/2026/05/31/a.jpg" bytes=512 action=0 meta_source=2
+2026/05/31 21:36:29 INFO preflight: disk space check source_bytes=100 available_bytes=94594957312 required_bytes=110
+2026/05/31 21:36:29 INFO preflight: disk space check source_bytes=100 available_bytes=94594957312 required_bytes=1073741824000000
+2026/05/31 21:36:29 INFO preflight: disk space check source_bytes=2054 available_bytes=94594940928 required_bytes=2259
+2026/05/31 21:36:29 INFO importer: imported src=/tmp/TestImport_BasicWalk2431733765/001/DCIM/100FUJI/DSCF0003.RAF dst="/tmp/TestImport_BasicWalk2431733765/002/James's Library/2026/05/31/DSCF0003.RAF" bytes=1024 action=0 meta_source=2
+2026/05/31 21:36:29 INFO importer: imported src=/tmp/TestImport_BasicWalk2431733765/001/DSCF0001.jpg dst="/tmp/TestImport_BasicWalk2431733765/002/James's Library/2026/05/31/DSCF0001.jpg" bytes=512 action=0 meta_source=2
+2026/05/31 21:36:29 INFO importer: imported src=/tmp/TestImport_BasicWalk2431733765/001/DSCF0002.jpg dst="/tmp/TestImport_BasicWalk2431733765/002/James's Library/2026/05/31/DSCF0002.jpg" bytes=512 action=0 meta_source=2
+2026/05/31 21:36:29 INFO preflight: disk space check source_bytes=262 available_bytes=94594957312 required_bytes=288
+2026/05/31 21:36:29 INFO importer: imported src=/tmp/TestImport_SkipUnsupportedExtensions2528098547/001/photo.jpg dst="/tmp/TestImport_SkipUnsupportedExtensions2528098547/002/James's Library/2026/05/31/photo.jpg" bytes=256 action=0 meta_source=2
+2026/05/31 21:36:29 INFO preflight: disk space check source_bytes=1024 available_bytes=94594949120 required_bytes=1126
+2026/05/31 21:36:29 INFO importer: imported src=/tmp/TestImport_ManifestWritten3922123749/001/a.jpg dst="/tmp/TestImport_ManifestWritten3922123749/002/James's Library/2026/05/31/a.jpg" bytes=512 action=0 meta_source=2
+2026/05/31 21:36:29 INFO importer: imported src=/tmp/TestImport_ManifestWritten3922123749/001/b.jpg dst="/tmp/TestImport_ManifestWritten3922123749/002/James's Library/2026/05/31/b.jpg" bytes=512 action=0 meta_source=2
+2026/05/31 21:36:29 INFO preflight: disk space check source_bytes=512 available_bytes=94594953216 required_bytes=563
+2026/05/31 21:36:29 INFO importer: imported src=/tmp/TestImport_ManifestDisabled1501603618/001/a.jpg dst="/tmp/TestImport_ManifestDisabled1501603618/002/James's Library/2026/05/31/a.jpg" bytes=512 action=0 meta_source=2
+2026/05/31 21:36:29 INFO preflight: disk space check source_bytes=512 available_bytes=94594953216 required_bytes=563
+2026/05/31 21:36:29 INFO importer: imported src=/tmp/TestImport_CustomTemplate886183890/001/a.jpg dst=/tmp/TestImport_CustomTemplate886183890/002/James/shots/2026/a.jpg bytes=512 action=0 meta_source=2
+2026/05/31 21:36:29 INFO preflight: disk space check source_bytes=512 available_bytes=94594945024 required_bytes=563
+2026/05/31 21:36:29 INFO importer: imported src=/tmp/TestImport_MirrorCopied327723258/001/a.jpg dst="/tmp/TestImport_MirrorCopied327723258/002/James's Library/2026/05/31/a.jpg" bytes=512 action=0 meta_source=2
+2026/05/31 21:36:29 INFO preflight: disk space check source_bytes=512 available_bytes=94594949120 required_bytes=563
+2026/05/31 21:36:29 INFO importer: imported src=/tmp/TestImport_MirrorFailDoesNotAbortPrimary3850566818/001/a.jpg dst="/tmp/TestImport_MirrorFailDoesNotAbortPrimary3850566818/002/James's Library/2026/05/31/a.jpg" bytes=512 action=0 meta_source=2
+2026/05/31 21:36:29 WARN importer: mirror mkdir failed error="mkdir /this: permission denied"
+2026/05/31 21:36:29 INFO preflight: disk space check source_bytes=512 available_bytes=94594949120 required_bytes=563
+2026/05/31 21:36:29 INFO importer: imported src=/tmp/TestImport_SecondRunSkipsDuplicates1189372204/001/DSCF0001.jpg dst="/tmp/TestImport_SecondRunSkipsDuplicates1189372204/002/James's Library/2026/05/31/DSCF0001.jpg" bytes=512 action=0 meta_source=2
+2026/05/31 21:36:29 INFO preflight: disk space check source_bytes=512 available_bytes=94594920448 required_bytes=563
+2026/05/31 21:36:29 INFO preflight: disk space check source_bytes=512 available_bytes=94594936832 required_bytes=563
+2026/05/31 21:36:29 INFO importer: imported src=/tmp/TestImport_HookCalled112655048/001/a.jpg dst="/tmp/TestImport_HookCalled112655048/002/J's Library/2026/05/31/a.jpg" bytes=512 action=0 meta_source=2
+2026/05/31 21:36:29 INFO preflight: disk space check source_bytes=100 available_bytes=94594936832 required_bytes=110
+2026/05/31 21:36:29 INFO preflight: disk space check source_bytes=100 available_bytes=94594936832 required_bytes=1073741824000000
+2026/05/31 21:36:29 INFO preflight: disk space check source_bytes=2054 available_bytes=94594920448 required_bytes=2259
+2026/05/31 21:36:29 INFO importer: imported src=/tmp/TestImport_BasicWalk1369169276/001/DCIM/100FUJI/DSCF0003.RAF dst="/tmp/TestImport_BasicWalk1369169276/002/James's Library/2026/05/31/DSCF0003.RAF" bytes=1024 action=0 meta_source=2
+2026/05/31 21:36:29 INFO importer: imported src=/tmp/TestImport_BasicWalk1369169276/001/DSCF0001.jpg dst="/tmp/TestImport_BasicWalk1369169276/002/James's Library/2026/05/31/DSCF0001.jpg" bytes=512 action=0 meta_source=2
+2026/05/31 21:36:29 INFO importer: imported src=/tmp/TestImport_BasicWalk1369169276/001/DSCF0002.jpg dst="/tmp/TestImport_BasicWalk1369169276/002/James's Library/2026/05/31/DSCF0002.jpg" bytes=512 action=0 meta_source=2
+2026/05/31 21:36:29 INFO preflight: disk space check source_bytes=262 available_bytes=94594928640 required_bytes=288
+2026/05/31 21:36:29 INFO importer: imported src=/tmp/TestImport_SkipUnsupportedExtensions2283719217/001/photo.jpg dst="/tmp/TestImport_SkipUnsupportedExtensions2283719217/002/James's Library/2026/05/31/photo.jpg" bytes=256 action=0 meta_source=2
+2026/05/31 21:36:29 INFO preflight: disk space check source_bytes=1024 available_bytes=94594928640 required_bytes=1126
+2026/05/31 21:36:29 INFO importer: imported src=/tmp/TestImport_ManifestWritten2307500427/001/a.jpg dst="/tmp/TestImport_ManifestWritten2307500427/002/James's Library/2026/05/31/a.jpg" bytes=512 action=0 meta_source=2
+2026/05/31 21:36:29 INFO importer: imported src=/tmp/TestImport_ManifestWritten2307500427/001/b.jpg dst="/tmp/TestImport_ManifestWritten2307500427/002/James's Library/2026/05/31/b.jpg" bytes=512 action=0 meta_source=2
+2026/05/31 21:36:29 INFO preflight: disk space check source_bytes=512 available_bytes=94594932736 required_bytes=563
+2026/05/31 21:36:29 INFO importer: imported src=/tmp/TestImport_ManifestDisabled862269706/001/a.jpg dst="/tmp/TestImport_ManifestDisabled862269706/002/James's Library/2026/05/31/a.jpg" bytes=512 action=0 meta_source=2
+2026/05/31 21:36:29 INFO preflight: disk space check source_bytes=512 available_bytes=94594932736 required_bytes=563
+2026/05/31 21:36:29 INFO importer: imported src=/tmp/TestImport_CustomTemplate2547992617/001/a.jpg dst=/tmp/TestImport_CustomTemplate2547992617/002/James/shots/2026/a.jpg bytes=512 action=0 meta_source=2
+2026/05/31 21:36:29 INFO preflight: disk space check source_bytes=512 available_bytes=94594924544 required_bytes=563
+2026/05/31 21:36:29 INFO importer: imported src=/tmp/TestImport_MirrorCopied1741891448/001/a.jpg dst="/tmp/TestImport_MirrorCopied1741891448/002/James's Library/2026/05/31/a.jpg" bytes=512 action=0 meta_source=2
+2026/05/31 21:36:29 INFO preflight: disk space check source_bytes=512 available_bytes=94594920448 required_bytes=563
+2026/05/31 21:36:29 INFO importer: imported src=/tmp/TestImport_MirrorFailDoesNotAbortPrimary3613076119/001/a.jpg dst="/tmp/TestImport_MirrorFailDoesNotAbortPrimary3613076119/002/James's Library/2026/05/31/a.jpg" bytes=512 action=0 meta_source=2
+2026/05/31 21:36:29 WARN importer: mirror mkdir failed error="mkdir /this: permission denied"
+2026/05/31 21:36:29 INFO preflight: disk space check source_bytes=512 available_bytes=94594920448 required_bytes=563
+2026/05/31 21:36:29 INFO importer: imported src=/tmp/TestImport_SecondRunSkipsDuplicates250839882/001/DSCF0001.jpg dst="/tmp/TestImport_SecondRunSkipsDuplicates250839882/002/James's Library/2026/05/31/DSCF0001.jpg" bytes=512 action=0 meta_source=2
+2026/05/31 21:36:29 INFO preflight: disk space check source_bytes=512 available_bytes=94594899968 required_bytes=563
+2026/05/31 21:36:29 INFO preflight: disk space check source_bytes=512 available_bytes=94594916352 required_bytes=563
+2026/05/31 21:36:29 INFO importer: imported src=/tmp/TestImport_HookCalled1472474022/001/a.jpg dst="/tmp/TestImport_HookCalled1472474022/002/J's Library/2026/05/31/a.jpg" bytes=512 action=0 meta_source=2
+2026/05/31 21:36:29 INFO preflight: disk space check source_bytes=100 available_bytes=94594908160 required_bytes=110
+2026/05/31 21:36:29 INFO preflight: disk space check source_bytes=100 available_bytes=94594908160 required_bytes=1073741824000000
+2026/05/31 21:36:29 INFO preflight: disk space check source_bytes=2054 available_bytes=94594891776 required_bytes=2259
+2026/05/31 21:36:29 INFO importer: imported src=/tmp/TestImport_BasicWalk150966623/001/DCIM/100FUJI/DSCF0003.RAF dst="/tmp/TestImport_BasicWalk150966623/002/James's Library/2026/05/31/DSCF0003.RAF" bytes=1024 action=0 meta_source=2
+2026/05/31 21:36:29 INFO importer: imported src=/tmp/TestImport_BasicWalk150966623/001/DSCF0001.jpg dst="/tmp/TestImport_BasicWalk150966623/002/James's Library/2026/05/31/DSCF0001.jpg" bytes=512 action=0 meta_source=2
+2026/05/31 21:36:29 INFO importer: imported src=/tmp/TestImport_BasicWalk150966623/001/DSCF0002.jpg dst="/tmp/TestImport_BasicWalk150966623/002/James's Library/2026/05/31/DSCF0002.jpg" bytes=512 action=0 meta_source=2
+2026/05/31 21:36:29 INFO preflight: disk space check source_bytes=262 available_bytes=94594908160 required_bytes=288
+2026/05/31 21:36:29 INFO importer: imported src=/tmp/TestImport_SkipUnsupportedExtensions399375199/001/photo.jpg dst="/tmp/TestImport_SkipUnsupportedExtensions399375199/002/James's Library/2026/05/31/photo.jpg" bytes=256 action=0 meta_source=2
+2026/05/31 21:36:29 INFO preflight: disk space check source_bytes=1024 available_bytes=94594908160 required_bytes=1126
+2026/05/31 21:36:29 INFO importer: imported src=/tmp/TestImport_ManifestWritten2545189024/001/a.jpg dst="/tmp/TestImport_ManifestWritten2545189024/002/James's Library/2026/05/31/a.jpg" bytes=512 action=0 meta_source=2
+2026/05/31 21:36:29 INFO importer: imported src=/tmp/TestImport_ManifestWritten2545189024/001/b.jpg dst="/tmp/TestImport_ManifestWritten2545189024/002/James's Library/2026/05/31/b.jpg" bytes=512 action=0 meta_source=2
+2026/05/31 21:36:29 INFO preflight: disk space check source_bytes=512 available_bytes=94594912256 required_bytes=563
+2026/05/31 21:36:29 INFO importer: imported src=/tmp/TestImport_ManifestDisabled1777439295/001/a.jpg dst="/tmp/TestImport_ManifestDisabled1777439295/002/James's Library/2026/05/31/a.jpg" bytes=512 action=0 meta_source=2
+2026/05/31 21:36:29 INFO preflight: disk space check source_bytes=512 available_bytes=94594904064 required_bytes=563
+2026/05/31 21:36:29 INFO importer: imported src=/tmp/TestImport_CustomTemplate2977344882/001/a.jpg dst=/tmp/TestImport_CustomTemplate2977344882/002/James/shots/2026/a.jpg bytes=512 action=0 meta_source=2
+2026/05/31 21:36:29 INFO preflight: disk space check source_bytes=512 available_bytes=94594895872 required_bytes=563
+2026/05/31 21:36:29 INFO importer: imported src=/tmp/TestImport_MirrorCopied1566212667/001/a.jpg dst="/tmp/TestImport_MirrorCopied1566212667/002/James's Library/2026/05/31/a.jpg" bytes=512 action=0 meta_source=2
+2026/05/31 21:36:29 INFO preflight: disk space check source_bytes=512 available_bytes=94594899968 required_bytes=563
+2026/05/31 21:36:29 INFO importer: imported src=/tmp/TestImport_MirrorFailDoesNotAbortPrimary740694124/001/a.jpg dst="/tmp/TestImport_MirrorFailDoesNotAbortPrimary740694124/002/James's Library/2026/05/31/a.jpg" bytes=512 action=0 meta_source=2
+2026/05/31 21:36:29 WARN importer: mirror mkdir failed error="mkdir /this: permission denied"
+2026/05/31 21:36:29 INFO preflight: disk space check source_bytes=512 available_bytes=94594891776 required_bytes=563
+2026/05/31 21:36:29 INFO importer: imported src=/tmp/TestImport_SecondRunSkipsDuplicates616065117/001/DSCF0001.jpg dst="/tmp/TestImport_SecondRunSkipsDuplicates616065117/002/James's Library/2026/05/31/DSCF0001.jpg" bytes=512 action=0 meta_source=2
+2026/05/31 21:36:29 INFO preflight: disk space check source_bytes=512 available_bytes=94594871296 required_bytes=563
+2026/05/31 21:36:29 INFO preflight: disk space check source_bytes=512 available_bytes=94594887680 required_bytes=563
+2026/05/31 21:36:29 INFO importer: imported src=/tmp/TestImport_HookCalled1527310493/001/a.jpg dst="/tmp/TestImport_HookCalled1527310493/002/J's Library/2026/05/31/a.jpg" bytes=512 action=0 meta_source=2
+2026/05/31 21:36:29 INFO preflight: disk space check source_bytes=100 available_bytes=94594887680 required_bytes=110
+2026/05/31 21:36:29 INFO preflight: disk space check source_bytes=100 available_bytes=94594887680 required_bytes=1073741824000000
+goos: linux
+goarch: amd64
+pkg: github.com/jmsnll/cardimportd/internal/importer
+cpu: AMD EPYC 9V74 80-Core Processor                
+BenchmarkCopyVerified/1KB-4  	   10000	    102836 ns/op	   9.96 MB/s	   34775 B/op	      35 allocs/op
+BenchmarkCopyVerified/1KB-4  	   12472	     92694 ns/op	  11.05 MB/s	   34774 B/op	      35 allocs/op
+BenchmarkCopyVerified/1KB-4  	   13040	     88367 ns/op	  11.59 MB/s	   34774 B/op	      35 allocs/op
+BenchmarkCopyVerified/1KB-4  	   12378	     93192 ns/op	  10.99 MB/s	   34775 B/op	      35 allocs/op
+BenchmarkCopyVerified/1KB-4  	   12409	     92895 ns/op	  11.02 MB/s	   34774 B/op	      35 allocs/op
+BenchmarkCopyVerified/1MB-4  	     764	   1565977 ns/op	 669.60 MB/s	   34776 B/op	      34 allocs/op
+BenchmarkCopyVerified/1MB-4  	     764	   1566023 ns/op	 669.58 MB/s	   34778 B/op	      34 allocs/op
+BenchmarkCopyVerified/1MB-4  	     771	   1566152 ns/op	 669.52 MB/s	   34778 B/op	      34 allocs/op
+BenchmarkCopyVerified/1MB-4  	     768	   1564341 ns/op	 670.30 MB/s	   34777 B/op	      34 allocs/op
+BenchmarkCopyVerified/1MB-4  	     766	   1566399 ns/op	 669.42 MB/s	   34777 B/op	      34 allocs/op
+BenchmarkCopyVerified/100MB-4         	       7	 150695844 ns/op	 695.82 MB/s	   34940 B/op	      35 allocs/op
+BenchmarkCopyVerified/100MB-4         	       7	 150389475 ns/op	 697.24 MB/s	   34940 B/op	      35 allocs/op
+BenchmarkCopyVerified/100MB-4         	       7	 150737109 ns/op	 695.63 MB/s	   34988 B/op	      36 allocs/op
+BenchmarkCopyVerified/100MB-4         	       7	 150516656 ns/op	 696.65 MB/s	   34890 B/op	      35 allocs/op
+BenchmarkCopyVerified/100MB-4         	       7	 151882877 ns/op	 690.38 MB/s	   34892 B/op	      34 allocs/op
+BenchmarkCheckDupNoExist-4            	 1000000	      1087 ns/op	     320 B/op	       3 allocs/op
+BenchmarkCheckDupNoExist-4            	 1000000	      1095 ns/op	     320 B/op	       3 allocs/op
+BenchmarkCheckDupNoExist-4            	 1000000	      1097 ns/op	     320 B/op	       3 allocs/op
+BenchmarkCheckDupNoExist-4            	 1000000	      1089 ns/op	     320 B/op	       3 allocs/op
+BenchmarkCheckDupNoExist-4            	 1000000	      1085 ns/op	     320 B/op	       3 allocs/op
+BenchmarkCheckDupSkip-4               	   91456	     13342 ns/op	    5929 B/op	      20 allocs/op
+BenchmarkCheckDupSkip-4               	   89144	     13427 ns/op	    5881 B/op	      20 allocs/op
+BenchmarkCheckDupSkip-4               	   87466	     13359 ns/op	    5929 B/op	      20 allocs/op
+BenchmarkCheckDupSkip-4               	   88773	     13427 ns/op	    5929 B/op	      20 allocs/op
+BenchmarkCheckDupSkip-4               	   89844	     13346 ns/op	    5881 B/op	      20 allocs/op
+PASS
+ok  	github.com/jmsnll/cardimportd/internal/importer	31.670s
