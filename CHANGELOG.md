@@ -1,5 +1,15 @@
 # Changelog
 
+## [0.13.4](https://github.com/jmsnll/cardimportd/compare/v0.13.3...v0.13.4) (2026-05-31)
+
+
+### Bug Fixes
+
+* **ci:** chain release workflow via workflow_dispatch from release-please ([3f43dd4](https://github.com/jmsnll/cardimportd/commit/3f43dd4a979b44f069c7ed7c2f53667326a15fec))
+* **ci:** trigger release workflow on published release, not tag push ([990fddf](https://github.com/jmsnll/cardimportd/commit/990fddff3a5776eac7fcba4fc4d878e1808a99de))
+* **lint:** add errcheck exclusions for intentional defer/SSE patterns ([55d8165](https://github.com/jmsnll/cardimportd/commit/55d8165a4af942345a653134d7516bba7b19eec4))
+* **lint:** resolve all 102 golangci-lint issues ([a8e367c](https://github.com/jmsnll/cardimportd/commit/a8e367c7706b692e7ec0a297bd46819174ecbde5))
+
 ## [0.13.3](https://github.com/jmsnll/cardimportd/compare/v0.13.2...v0.13.3) (2026-05-31)
 
 
