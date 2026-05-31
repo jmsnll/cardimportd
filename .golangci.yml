@@ -1,0 +1,31 @@
+version: "2"
+
+linters:
+  default: none
+  enable:
+    - errcheck       # ignored error returns
+    - staticcheck    # static analysis (includes SA*, S*, QF* checks)
+    - govet          # go vet checks
+    - ineffassign    # assignments whose value is never used
+    - misspell       # spelling in comments and strings
+    - gosec          # common security issues
+    - gocritic       # style and correctness diagnostics
+
+linters-settings:
+  gosec:
+    excludes:
+      # G204: subprocess launched with variable — intentional for post_import_hook
+      - G204
+  gocritic:
+    enabled-tags:
+      - diagnostic
+      - performance
+
+issues:
+  max-same-issues: 0
+  exclude-rules:
+    # Test files get a lighter touch
+    - path: _test\.go
+      linters:
+        - gosec
+        - errcheck
