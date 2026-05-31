@@ -204,7 +204,7 @@ func handleMount(
 	})
 
 	start := time.Now()
-	res, err := imp.Import(ctx, entry.Owner, evt.MountPoint)
+	res, err := imp.Import(ctx, entry.Owner, evt.MountPoint, uuid)
 	elapsed := time.Since(start)
 
 	if err != nil {

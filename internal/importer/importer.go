@@ -35,7 +35,7 @@ func New(cfg *config.Config, notifier notify.Notifier) *Importer {
 
 // Import walks mountPath for supported files and imports them to the
 // per-owner destination under cfg.ImportRoot.
-func (imp *Importer) Import(ctx context.Context, owner, mountPath string) (Result, error) {
+func (imp *Importer) Import(ctx context.Context, owner, mountPath, cardUUID string) (Result, error) {
 	var res Result
 	var entries []manifestEntry
 
@@ -64,7 +64,7 @@ func (imp *Importer) Import(ctx context.Context, owner, mountPath string) (Resul
 		}
 
 		res.Total++
-		n, hash, dstPath, action, err := imp.importFile(ctx, owner, path)
+		n, hash, dstPath, action, err := imp.importFile(ctx, owner, path, cardUUID)
 		if err != nil {
 			slog.Error("importer: failed", "src", path, "error", err)
 			res.Failed++
@@ -100,16 +100,18 @@ func (imp *Importer) Import(ctx context.Context, owner, mountPath string) (Resul
 	return res, err
 }
 
-func (imp *Importer) importFile(ctx context.Context, owner, srcPath string) (n int64, hash string, dstPath string, action dupAction, err error) {
+func (imp *Importer) importFile(ctx context.Context, owner, srcPath, cardUUID string) (n int64, hash string, dstPath string, action dupAction, err error) {
 	m := meta.Extract(srcPath)
 
-	dstDir := filepath.Join(
-		imp.cfg.ImportRoot,
-		owner+"'s Library",
-		m.DateTimeOriginal.Format("2006"),
-		m.DateTimeOriginal.Format("01"),
-		m.DateTimeOriginal.Format("02"),
-	)
+	cardEntry, _ := imp.cfg.LookupCard(cardUUID)
+	templateStr := cardEntry.DestinationTemplate
+	if templateStr == "" {
+		templateStr = imp.cfg.DestinationTemplate
+	}
+	dstDir, err := resolveDestDir(imp.cfg.ImportRoot, templateStr, owner, cardUUID, m.CameraModel, m.DateTimeOriginal)
+	if err != nil {
+		return 0, "", "", 0, fmt.Errorf("resolve dest: %w", err)
+	}
 	naiveDst := filepath.Join(dstDir, filepath.Base(srcPath))
 
 	dup, err := checkDup(srcPath, naiveDst, m)

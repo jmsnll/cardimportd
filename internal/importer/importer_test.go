@@ -206,7 +206,7 @@ func TestImport_BasicWalk(t *testing.T) {
 	makeFile(t, subDir, "DSCF0003.RAF", randomBytes(t, 1024))
 
 	imp := New(makeConfig(dstRoot), &discardNotifier{})
-	res, err := imp.Import(context.Background(), "James", cardDir)
+	res, err := imp.Import(context.Background(), "James", cardDir, "TEST-UUID")
 	if err != nil {
 		t.Fatalf("Import: %v", err)
 	}
@@ -225,7 +225,7 @@ func TestImport_SkipUnsupportedExtensions(t *testing.T) {
 	makeFile(t, cardDir, "photo.jpg", randomBytes(t, 256))
 
 	imp := New(makeConfig(dstRoot), &discardNotifier{})
-	res, err := imp.Import(context.Background(), "James", cardDir)
+	res, err := imp.Import(context.Background(), "James", cardDir, "TEST-UUID")
 	if err != nil {
 		t.Fatalf("Import: %v", err)
 	}
@@ -240,7 +240,7 @@ func TestImport_ManifestWritten(t *testing.T) {
 	makeFile(t, cardDir, "b.jpg", randomBytes(t, 512))
 	cfg := makeConfig(dstRoot)
 	cfg.WriteManifest = true
-	res, err := New(cfg, &discardNotifier{}).Import(context.Background(), "James", cardDir)
+	res, err := New(cfg, &discardNotifier{}).Import(context.Background(), "James", cardDir, "")
 	if err != nil {
 		t.Fatalf("Import: %v", err)
 	}
@@ -262,9 +262,26 @@ func TestImport_ManifestDisabled(t *testing.T) {
 	makeFile(t, cardDir, "a.jpg", randomBytes(t, 512))
 	cfg := makeConfig(dstRoot)
 	cfg.WriteManifest = false
-	New(cfg, &discardNotifier{}).Import(context.Background(), "James", cardDir)
+	New(cfg, &discardNotifier{}).Import(context.Background(), "James", cardDir, "")
 	if _, err := os.Stat(filepath.Join(dstRoot, "James's Library", "cardimportd-manifest.txt")); !os.IsNotExist(err) {
 		t.Error("manifest written when disabled")
+	}
+}
+
+func TestImport_CustomTemplate(t *testing.T) {
+	cardDir, dstRoot := t.TempDir(), t.TempDir()
+	makeFile(t, cardDir, "a.jpg", randomBytes(t, 512))
+	cfg := makeConfig(dstRoot)
+	cfg.DestinationTemplate = "{{ .Owner }}/shots/{{ .Year }}"
+	res, err := New(cfg, &discardNotifier{}).Import(context.Background(), "James", cardDir, "UUID")
+	if err != nil {
+		t.Fatalf("Import: %v", err)
+	}
+	if res.Imported != 1 {
+		t.Fatalf("Imported = %d", res.Imported)
+	}
+	if entries, err := os.ReadDir(filepath.Join(dstRoot, "James", "shots")); err != nil || len(entries) == 0 {
+		t.Error("custom template path not created")
 	}
 }
 
@@ -276,7 +293,7 @@ func TestImport_SecondRunSkipsDuplicates(t *testing.T) {
 	cfg := makeConfig(dstRoot)
 	imp := New(cfg, &discardNotifier{})
 
-	res1, err := imp.Import(context.Background(), "James", cardDir)
+	res1, err := imp.Import(context.Background(), "James", cardDir, "TEST-UUID")
 	if err != nil {
 		t.Fatalf("first Import: %v", err)
 	}
@@ -284,7 +301,7 @@ func TestImport_SecondRunSkipsDuplicates(t *testing.T) {
 		t.Fatalf("first run: Imported = %d, want 1", res1.Imported)
 	}
 
-	res2, err := imp.Import(context.Background(), "James", cardDir)
+	res2, err := imp.Import(context.Background(), "James", cardDir, "TEST-UUID")
 	if err != nil {
 		t.Fatalf("second Import: %v", err)
 	}
@@ -305,7 +322,7 @@ func TestImport_HookCalled(t *testing.T) {
 	makeFile(t, cardDir, "a.jpg", randomBytes(t, 512))
 	cfg := makeConfig(dstRoot)
 	cfg.PostImportHook = "touch " + marker
-	if _, err := New(cfg, &discardNotifier{}).Import(context.Background(), "J", cardDir); err != nil {
+	if _, err := New(cfg, &discardNotifier{}).Import(context.Background(), "J", cardDir, ""); err != nil {
 		t.Fatalf("Import: %v", err)
 	}
 	if _, err := os.Stat(marker); err != nil {
