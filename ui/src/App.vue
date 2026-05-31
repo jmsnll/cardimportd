@@ -1,44 +1,82 @@
 <template>
-  <header>
-    <span class="header-title">Card Importer</span>
-    <span class="header-sub">cardimportd</span>
-  </header>
-
-  <nav class="tab-bar">
-    <button
-      class="tab-btn"
-      :class="{ active: activeTab === 'cards' }"
-      @click="activeTab = 'cards'"
-    >Cards</button>
-    <button
-      class="tab-btn"
-      :class="{ active: activeTab === 'settings' }"
-      @click="activeTab = 'settings'"
-    >Settings</button>
-    <button
-      class="tab-btn"
-      :class="{ active: activeTab === 'notifications' }"
-      @click="activeTab = 'notifications'"
-    >Notifications</button>
+  <nav class="navbar is-brand" role="banner" aria-label="Card Importer">
+    <div class="navbar-brand">
+      <span class="navbar-item has-text-weight-semibold">Card Importer</span>
+      <span class="navbar-item is-sub">cardimportd</span>
+    </div>
   </nav>
 
-  <main>
-    <div v-show="activeTab === 'cards'">
-      <CardsView />
-    </div>
-    <div v-show="activeTab === 'settings'">
-      <SettingsView
-        v-if="config"
-        :config="config"
-        @update:config="onConfigUpdated"
-      />
-    </div>
-    <div v-show="activeTab === 'notifications'">
-      <NotificationsView
-        v-if="config"
-        :config="config"
-        @update:config="onConfigUpdated"
-      />
+  <div class="tabs is-brand mb-0" role="tablist" aria-label="Main navigation" @keydown="onTabKeydown">
+    <ul>
+      <li :class="{ 'is-active': activeTab === 'cards' }">
+        <a
+          id="tab-cards"
+          role="tab"
+          :aria-selected="activeTab === 'cards'"
+          :tabindex="activeTab === 'cards' ? 0 : -1"
+          href="#panel-cards"
+          @click.prevent="activeTab = 'cards'"
+        >Cards</a>
+      </li>
+      <li :class="{ 'is-active': activeTab === 'settings' }">
+        <a
+          id="tab-settings"
+          role="tab"
+          :aria-selected="activeTab === 'settings'"
+          :tabindex="activeTab === 'settings' ? 0 : -1"
+          href="#panel-settings"
+          @click.prevent="activeTab = 'settings'"
+        >Settings</a>
+      </li>
+      <li :class="{ 'is-active': activeTab === 'notifications' }">
+        <a
+          id="tab-notifications"
+          role="tab"
+          :aria-selected="activeTab === 'notifications'"
+          :tabindex="activeTab === 'notifications' ? 0 : -1"
+          href="#panel-notifications"
+          @click.prevent="activeTab = 'notifications'"
+        >Notifications</a>
+      </li>
+    </ul>
+  </div>
+
+  <main class="section pt-5">
+    <div class="container">
+      <section
+        id="panel-cards"
+        role="tabpanel"
+        aria-labelledby="tab-cards"
+        :hidden="activeTab !== 'cards'"
+      >
+        <CardsView />
+      </section>
+
+      <section
+        id="panel-settings"
+        role="tabpanel"
+        aria-labelledby="tab-settings"
+        :hidden="activeTab !== 'settings'"
+      >
+        <SettingsView
+          v-if="config"
+          :config="config"
+          @update:config="onConfigUpdated"
+        />
+      </section>
+
+      <section
+        id="panel-notifications"
+        role="tabpanel"
+        aria-labelledby="tab-notifications"
+        :hidden="activeTab !== 'notifications'"
+      >
+        <NotificationsView
+          v-if="config"
+          :config="config"
+          @update:config="onConfigUpdated"
+        />
+      </section>
     </div>
   </main>
 
@@ -54,7 +92,10 @@ import CardsView from './views/CardsView.vue'
 import SettingsView from './views/SettingsView.vue'
 import NotificationsView from './views/NotificationsView.vue'
 
-const activeTab = ref<'cards' | 'settings' | 'notifications'>('cards')
+type Tab = 'cards' | 'settings' | 'notifications'
+const tabs: Tab[] = ['cards', 'settings', 'notifications']
+
+const activeTab = ref<Tab>('cards')
 const config = ref<Config | null>(null)
 const toast = ref<InstanceType<typeof Toast> | null>(null)
 
@@ -66,6 +107,28 @@ provide('showToast', showToast)
 
 function onConfigUpdated(cfg: Config) {
   config.value = cfg
+}
+
+function onTabKeydown(e: KeyboardEvent) {
+  const idx = tabs.indexOf(activeTab.value)
+  if (e.key === 'ArrowRight') {
+    activeTab.value = tabs[(idx + 1) % tabs.length]
+    focusTab(activeTab.value)
+  } else if (e.key === 'ArrowLeft') {
+    activeTab.value = tabs[(idx - 1 + tabs.length) % tabs.length]
+    focusTab(activeTab.value)
+  } else if (e.key === 'Home') {
+    activeTab.value = tabs[0]
+    focusTab(activeTab.value)
+  } else if (e.key === 'End') {
+    activeTab.value = tabs[tabs.length - 1]
+    focusTab(activeTab.value)
+  }
+}
+
+function focusTab(tab: Tab) {
+  const el = document.getElementById(`tab-${tab}`)
+  el?.focus()
 }
 
 onMounted(async () => {

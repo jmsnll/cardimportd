@@ -1,8 +1,14 @@
 <template>
-  <div
-    class="toast"
-    :class="[visible ? 'toast-visible' : '', type ? `toast-${type}` : '']"
-  >{{ message }}</div>
+  <div class="toast-overlay" aria-live="assertive" aria-atomic="true">
+    <Transition name="toast">
+      <div
+        v-if="visible"
+        class="notification mb-0"
+        :class="type === 'success' ? 'is-success' : 'is-danger'"
+        role="alert"
+      >{{ message }}</div>
+    </Transition>
+  </div>
 </template>
 
 <script setup lang="ts">

@@ -1,24 +1,26 @@
 <template>
   <div>
-    <div v-if="error" class="note">Failed to load cards: {{ error }}</div>
+    <article v-if="error" class="message is-danger" role="alert">
+      <div class="message-body">Failed to load cards: {{ error }}</div>
+    </article>
 
-    <div v-else-if="Object.keys(cards).length === 0" class="empty-state">
-      <span class="empty-state-icon">&#128190;</span>
-      <div class="empty-state-title">No cards registered</div>
-      <div class="empty-state-body">
-        Insert a card &mdash; the daemon will create a pending entry. Refresh to see it.
-      </div>
+    <div v-else-if="Object.keys(cards).length === 0" class="has-text-centered py-6">
+      <p class="is-size-1 mb-3" aria-hidden="true">💾</p>
+      <p class="is-size-5 has-text-weight-semibold mb-2">No cards registered</p>
+      <p class="has-text-grey">
+        Insert a card — the daemon will create a pending entry. Refresh to see it.
+      </p>
     </div>
 
-    <div v-else class="surface">
-      <table class="card-table">
+    <div v-else class="box p-0">
+      <table class="table is-fullwidth is-hoverable is-striped mb-0" aria-label="Registered cards">
         <thead>
           <tr>
-            <th>UUID</th>
-            <th>Owner</th>
-            <th>Status</th>
-            <th>First Seen</th>
-            <th>Actions</th>
+            <th scope="col">UUID</th>
+            <th scope="col">Owner</th>
+            <th scope="col">Status</th>
+            <th scope="col">First Seen</th>
+            <th scope="col"><span class="is-sr-only">Actions</span></th>
           </tr>
         </thead>
         <tbody>
@@ -27,35 +29,52 @@
 
             <td>
               <template v-if="editingUuid === uuid">
-                <input
-                  v-model="editOwner"
-                  class="inline-edit-input"
-                  placeholder="Owner name"
-                  ref="editInput"
-                />
+                <div class="control">
+                  <input
+                    v-model="editOwner"
+                    class="input is-small"
+                    type="text"
+                    placeholder="Owner name"
+                    :aria-label="`Owner name for card ${uuid}`"
+                    ref="editInput"
+                  />
+                </div>
               </template>
               <template v-else>
-                <em v-if="!entry.owner" style="color:#aaa">unset</em>
+                <span v-if="!entry.owner" class="has-text-grey-light is-italic">unset</span>
                 <span v-else>{{ entry.owner }}</span>
               </template>
             </td>
 
             <td>
-              <span class="badge" :class="`badge-${entry.status}`">{{ entry.status }}</span>
+              <span
+                class="tag"
+                :class="entry.status === 'active' ? 'is-success' : 'is-warning'"
+              >{{ entry.status }}</span>
             </td>
 
             <td>{{ entry.first_seen ? new Date(entry.first_seen).toLocaleString() : '—' }}</td>
 
-            <td class="actions-cell">
-              <template v-if="editingUuid === uuid">
-                <button class="btn btn-success btn-sm" @click="saveCard(String(uuid), 'active')">Activate</button>
-                <button class="btn btn-secondary btn-sm" @click="saveCard(String(uuid), 'pending')">Keep Pending</button>
-                <button class="btn btn-secondary btn-sm" @click="cancelEdit">Cancel</button>
-              </template>
-              <template v-else>
-                <button class="btn btn-secondary btn-sm" @click="startEdit(String(uuid), entry.owner)">Edit</button>
-                <button class="btn btn-danger btn-sm" @click="removeCard(String(uuid))">Remove</button>
-              </template>
+            <td>
+              <div class="buttons are-small is-right">
+                <template v-if="editingUuid === uuid">
+                  <button class="button is-success is-small" @click="saveCard(String(uuid), 'active')">Activate</button>
+                  <button class="button is-light is-small" @click="saveCard(String(uuid), 'pending')">Keep Pending</button>
+                  <button class="button is-light is-small" @click="cancelEdit">Cancel</button>
+                </template>
+                <template v-else>
+                  <button
+                    class="button is-light is-small"
+                    @click="startEdit(String(uuid), entry.owner)"
+                    :aria-label="`Edit card ${uuid}`"
+                  >Edit</button>
+                  <button
+                    class="button is-danger is-light is-small"
+                    @click="removeCard(String(uuid))"
+                    :aria-label="`Remove card ${uuid}`"
+                  >Remove</button>
+                </template>
+              </div>
             </td>
           </tr>
         </tbody>
@@ -66,7 +85,6 @@
 
 <script setup lang="ts">
 import { ref, onMounted, inject, nextTick } from 'vue'
-import type { Ref } from 'vue'
 import { getCards, updateCard, deleteCard } from '../api'
 import type { CardEntry, CardStatus } from '../types'
 
