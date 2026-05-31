@@ -2,9 +2,11 @@
 # Runs after the package is installed or upgraded.
 
 ETC=/var/packages/cardimportd/etc
+VAR=/var/packages/cardimportd/var
 EXAMPLE=/var/packages/cardimportd/target/config.example.yaml
 
 mkdir -p "$ETC"
+mkdir -p "$VAR"
 
 # Seed a default config only on first install (don't clobber upgrades).
 if [ ! -f "$ETC/config.yaml" ]; then

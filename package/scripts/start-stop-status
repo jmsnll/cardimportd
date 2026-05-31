@@ -3,8 +3,8 @@
 
 DAEMON=/var/packages/cardimportd/target/cardimportd
 CONFIG=/var/packages/cardimportd/etc/config.yaml
-PIDFILE=/var/run/cardimportd.pid
-LOG=/var/log/cardimportd.log
+PIDFILE=/var/packages/cardimportd/var/cardimportd.pid
+LOG=/var/packages/cardimportd/var/cardimportd.log
 
 start_daemon() {
     if [ -f "$PIDFILE" ] && kill -0 "$(cat $PIDFILE)" 2>/dev/null; then
