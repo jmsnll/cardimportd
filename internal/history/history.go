@@ -11,6 +11,8 @@ import (
 	"time"
 )
 
+const maxEntries = 10_000
+
 type Entry struct {
 	UUID        string    `json:"uuid"`
 	Owner       string    `json:"owner"`
@@ -41,10 +43,65 @@ func (l *Log) Append(entry Entry) error {
 	if err != nil {
 		return fmt.Errorf("history open: %w", err)
 	}
-	defer f.Close()
 	line, _ := json.Marshal(entry)
 	_, err = fmt.Fprintf(f, "%s\n", line)
-	return err
+	f.Close()
+	if err != nil {
+		return err
+	}
+	l.trimIfNeeded()
+	return nil
+}
+
+func (l *Log) trimIfNeeded() {
+	f, err := os.Open(l.path)
+	if err != nil {
+		slog.Warn("history: trim open failed", "error", err)
+		return
+	}
+	var lines [][]byte
+	scanner := bufio.NewScanner(f)
+	for scanner.Scan() {
+		b := scanner.Bytes()
+		if len(b) == 0 {
+			continue
+		}
+		cp := make([]byte, len(b))
+		copy(cp, b)
+		lines = append(lines, cp)
+	}
+	scanErr := scanner.Err()
+	f.Close()
+	if scanErr != nil {
+		slog.Warn("history: trim scan failed", "error", scanErr)
+		return
+	}
+	if len(lines) <= maxEntries {
+		return
+	}
+	lines = lines[len(lines)-maxEntries:]
+	tmp := l.path + ".tmp"
+	out, err := os.OpenFile(tmp, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, 0o644)
+	if err != nil {
+		slog.Warn("history: trim create tmp failed", "error", err)
+		return
+	}
+	w := bufio.NewWriter(out)
+	for _, line := range lines {
+		w.Write(line)
+		w.WriteByte('\n')
+	}
+	if err := w.Flush(); err != nil {
+		out.Close()
+		os.Remove(tmp)
+		slog.Warn("history: trim write failed", "error", err)
+		return
+	}
+	out.Close()
+	if err := os.Rename(tmp, l.path); err != nil {
+		os.Remove(tmp)
+		slog.Warn("history: trim rename failed", "error", err)
+	}
 }
 
 func (l *Log) Recent(n int) ([]Entry, error) {
