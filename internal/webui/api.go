@@ -6,15 +6,18 @@ import (
 	"fmt"
 	"log/slog"
 	"net/http"
+	"strconv"
 	"strings"
 	"time"
 
 	"github.com/jmsnll/cardimportd/internal/config"
+	"github.com/jmsnll/cardimportd/internal/history"
 	"github.com/jmsnll/cardimportd/internal/notify"
 )
 
 type apiHandler struct {
-	acc ConfigAccessor
+	acc  ConfigAccessor
+	hist HistoryReader
 }
 
 func writeJSON(w http.ResponseWriter, v any, status int) {
@@ -216,6 +219,35 @@ func (h *apiHandler) handleNotifyTest(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	writeJSON(w, map[string]bool{"ok": true}, http.StatusOK)
+}
+
+// -- /api/history -------------------------------------------------------------
+
+func (h *apiHandler) handleHistory(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodGet {
+		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+	limit := 50
+	if s := r.URL.Query().Get("limit"); s != "" {
+		if n, err := strconv.Atoi(s); err == nil && n > 0 {
+			limit = n
+		}
+	}
+	if h.hist == nil {
+		writeJSON(w, []history.Entry{}, http.StatusOK)
+		return
+	}
+	entries, err := h.hist.Recent(limit)
+	if err != nil {
+		slog.Error("webui: history", "err", err)
+		apiError(w, "failed to read history", http.StatusInternalServerError)
+		return
+	}
+	if entries == nil {
+		entries = []history.Entry{}
+	}
+	writeJSON(w, entries, http.StatusOK)
 }
 
 // -- helpers ------------------------------------------------------------------

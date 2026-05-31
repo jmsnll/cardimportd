@@ -17,6 +17,7 @@ import (
 	"time"
 
 	"github.com/jmsnll/cardimportd/internal/config"
+	"github.com/jmsnll/cardimportd/internal/history"
 	"github.com/jmsnll/cardimportd/internal/importer"
 	"github.com/jmsnll/cardimportd/internal/notify"
 	"github.com/jmsnll/cardimportd/internal/watcher"
@@ -48,6 +49,9 @@ func main() {
 			}
 		}
 	}
+
+	histPath := filepath.Join(filepath.Dir(*cfgPath), "import-history.jsonl")
+	hist := history.New(histPath)
 
 	logNotifier := notify.NewLogNotifier(logger)
 	notifiers := []notify.Notifier{logNotifier}
@@ -102,7 +106,7 @@ func main() {
 			Path: *cfgPath,
 		}
 		go func() {
-			srv := webui.New(acc, *webuiPort)
+			srv := webui.New(acc, hist, *webuiPort)
 			if err := srv.Start(ctx); err != nil {
 				slog.Error("webui: stopped", "error", err)
 			}
@@ -142,7 +146,7 @@ func main() {
 			if evt.Action != watcher.Mounted {
 				continue
 			}
-			go handleMount(ctx, getCfg, getImp, notifier, setCfg, evt, *cfgPath)
+			go handleMount(ctx, getCfg, getImp, notifier, setCfg, hist, evt, *cfgPath)
 		}
 	}
 }
@@ -153,6 +157,7 @@ func handleMount(
 	getImp func() *importer.Importer,
 	n notify.Notifier,
 	setCfg func(*config.Config),
+	hist *history.Log,
 	evt watcher.MountEvent,
 	cfgPath string,
 ) {
@@ -228,6 +233,21 @@ func handleMount(
 			Duration:    elapsed,
 		},
 	})
+
+	if err := hist.Append(history.Entry{
+		UUID:        uuid,
+		Owner:       entry.Owner,
+		MountPath:   evt.MountPoint,
+		StartedAt:   start,
+		CompletedAt: time.Now(),
+		Total:       res.Total,
+		Imported:    res.Imported,
+		Skipped:     res.Skipped,
+		Failed:      res.Failed,
+		BytesCopied: res.BytesCopied,
+	}); err != nil {
+		slog.Warn("history: append failed", "error", err)
+	}
 
 	slog.Info("import complete",
 		"owner", entry.Owner,
