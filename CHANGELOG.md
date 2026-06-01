@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.13.6](https://github.com/jmsnll/cardimportd/compare/v0.13.5...v0.13.6) (2026-06-01)
+
+
+### Bug Fixes
+
+* improve package information ([928ea16](https://github.com/jmsnll/cardimportd/commit/928ea16b87fd535df80b8a9ea8f49c964e3f14ad))
+
 ## [0.13.5](https://github.com/jmsnll/cardimportd/compare/v0.13.4...v0.13.5) (2026-05-31)
 
 
