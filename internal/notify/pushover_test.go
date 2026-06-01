@@ -7,7 +7,7 @@ import (
 )
 
 func TestFormatEvent(t *testing.T) {
-	stats := &ImportStats{Imported: 42, Skipped: 3, Failed: 1, Duration: 90 * time.Second}
+	stats := &ImportStats{Imported: 42, Skipped: 3, Failed: 1, BytesCopied: 13_000_000, Duration: 90 * time.Second}
 
 	cases := []struct {
 		name        string
@@ -31,7 +31,7 @@ func TestFormatEvent(t *testing.T) {
 			name:        "import completed with stats",
 			event:       Event{Kind: KindImportCompleted, Owner: "Sophie", Stats: stats},
 			wantTitle:   "Sophie imported",
-			wantMsgPart: "42",
+			wantMsgPart: "42 files imported (13.0 MB)",
 		},
 		{
 			name:        "import completed without stats",
@@ -63,6 +63,27 @@ func TestFormatEvent(t *testing.T) {
 				t.Errorf("title+msg = %q, want to contain %q", title+msg, tc.wantMsgPart)
 			}
 		})
+	}
+}
+
+func TestHumanizeBytes(t *testing.T) {
+	cases := []struct {
+		input int64
+		want  string
+	}{
+		{0, "0 B"},
+		{999, "999 B"},
+		{1_000, "1.0 KB"},
+		{1_500, "1.5 KB"},
+		{1_000_000, "1.0 MB"},
+		{13_000_000, "13.0 MB"},
+		{1_000_000_000, "1.0 GB"},
+		{2_500_000_000, "2.5 GB"},
+	}
+	for _, tc := range cases {
+		if got := humanizeBytes(tc.input); got != tc.want {
+			t.Errorf("humanizeBytes(%d) = %q, want %q", tc.input, got, tc.want)
+		}
 	}
 }
 

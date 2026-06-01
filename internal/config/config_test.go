@@ -237,7 +237,7 @@ write_manifest: true
 	if err != nil {
 		t.Fatalf("Load: %v", err)
 	}
-	if !cfg.WriteManifest {
+	if cfg.WriteManifest == nil || !*cfg.WriteManifest {
 		t.Fatal("WriteManifest = false, want true after Load")
 	}
 
@@ -249,7 +249,7 @@ write_manifest: true
 	if err != nil {
 		t.Fatalf("Load after Save: %v", err)
 	}
-	if !cfg2.WriteManifest {
+	if cfg2.WriteManifest == nil || !*cfg2.WriteManifest {
 		t.Error("WriteManifest not preserved through Save/Load round-trip")
 	}
 }

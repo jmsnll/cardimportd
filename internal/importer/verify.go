@@ -4,6 +4,7 @@ import (
 	"crypto/sha256"
 	"fmt"
 	"io"
+	"log/slog"
 	"os"
 )
 
@@ -49,7 +50,9 @@ func copyVerified(src, dst string) (n int64, sha256hex string, err error) {
 	}
 
 	if err := os.Rename(tmp, dst); err != nil {
-		_ = os.Remove(tmp)
+		if rmErr := os.Remove(tmp); rmErr != nil {
+			slog.Warn("importer: failed to remove orphaned tmp file", "path", tmp, "error", rmErr)
+		}
 		return 0, "", fmt.Errorf("rename tmp to dst %q: %w", dst, err)
 	}
 

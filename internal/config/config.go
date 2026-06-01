@@ -98,7 +98,7 @@ type Config struct {
 	WebUI               WebUIConfig          `yaml:"webui,omitempty"  json:"webui,omitempty"`
 	Notifications       NotificationConfig   `yaml:"notifications,omitempty" json:"notifications,omitempty"`
 	PostImportHook      string               `yaml:"post_import_hook,omitempty" json:"post_import_hook,omitempty"`
-	WriteManifest       bool                 `yaml:"write_manifest,omitempty" json:"write_manifest,omitempty"`
+	WriteManifest       *bool                `yaml:"write_manifest,omitempty" json:"write_manifest,omitempty"`
 	DestinationTemplate string               `yaml:"destination_template,omitempty" json:"destination_template,omitempty"`
 }
 
@@ -109,6 +109,7 @@ func Default() *Config {
 		ImportRoot:     "/volume1/photos",
 		Cards:          make(map[string]CardEntry),
 		FileExtensions: append([]string(nil), defaultFileExtensions...),
+		WriteManifest:  boolPtr(true),
 	}
 }
 
@@ -131,6 +132,9 @@ func Load(path string) (*Config, error) {
 	if len(cfg.FileExtensions) == 0 {
 		cfg.FileExtensions = append([]string(nil), defaultFileExtensions...)
 		slog.Info("config: no file_extensions set, using defaults", "extensions", cfg.FileExtensions)
+	}
+	if cfg.WriteManifest == nil {
+		cfg.WriteManifest = boolPtr(true)
 	}
 	if cfg.Cards == nil {
 		cfg.Cards = make(map[string]CardEntry)
@@ -156,6 +160,8 @@ func validateDestTemplates(cfg *Config) error {
 	}
 	return nil
 }
+
+func boolPtr(b bool) *bool { return &b }
 
 // Save atomically writes cfg to path via a .tmp sibling + os.Rename.
 func (c *Config) Save(path string) error {

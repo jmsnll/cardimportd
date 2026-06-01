@@ -102,7 +102,7 @@ func (imp *Importer) Import(ctx context.Context, owner, mountPath, cardUUID stri
 		default:
 			res.Imported++
 			res.BytesCopied += n
-			if imp.cfg.WriteManifest && hash != "" {
+			if imp.cfg.WriteManifest != nil && *imp.cfg.WriteManifest && hash != "" {
 				if rel, relErr := filepath.Rel(imp.cfg.ImportRoot, dstPath); relErr == nil {
 					entries = append(entries, manifestEntry{hash: hash, relPath: rel})
 				}
@@ -114,7 +114,7 @@ func (imp *Importer) Import(ctx context.Context, owner, mountPath, cardUUID stri
 		return nil
 	})
 
-	if err == nil && imp.cfg.WriteManifest && len(entries) > 0 {
+	if err == nil && imp.cfg.WriteManifest != nil && *imp.cfg.WriteManifest && len(entries) > 0 {
 		mPath := manifestFilePath(imp.cfg.ImportRoot, owner)
 		if mErr := writeManifest(mPath, entries); mErr != nil {
 			slog.Warn("importer: manifest write failed", "error", mErr)

@@ -40,6 +40,8 @@ type discardNotifier struct{}
 func (d *discardNotifier) Notify(_ context.Context, _ notify.Event) error { return nil }
 
 // makeConfig returns a minimal Config wired to importRoot.
+func boolPtr(b bool) *bool { return &b }
+
 func makeConfig(importRoot string) *config.Config {
 	return &config.Config{
 		ImportRoot: importRoot,
@@ -245,7 +247,7 @@ func TestImport_ManifestWritten(t *testing.T) {
 	makeFile(t, cardDir, "a.jpg", randomBytes(t, 512))
 	makeFile(t, cardDir, "b.jpg", randomBytes(t, 512))
 	cfg := makeConfig(dstRoot)
-	cfg.WriteManifest = true
+	cfg.WriteManifest = boolPtr(true)
 	res, err := New(cfg, &discardNotifier{}).Import(context.Background(), "James", cardDir, "")
 	if err != nil {
 		t.Fatalf("Import: %v", err)
@@ -267,7 +269,7 @@ func TestImport_ManifestDisabled(t *testing.T) {
 	cardDir, dstRoot := t.TempDir(), t.TempDir()
 	makeFile(t, cardDir, "a.jpg", randomBytes(t, 512))
 	cfg := makeConfig(dstRoot)
-	cfg.WriteManifest = false
+	cfg.WriteManifest = boolPtr(false)
 	New(cfg, &discardNotifier{}).Import(context.Background(), "James", cardDir, "")
 	if _, err := os.Stat(filepath.Join(dstRoot, "James's Library", "cardimportd-manifest.txt")); !os.IsNotExist(err) {
 		t.Error("manifest written when disabled")

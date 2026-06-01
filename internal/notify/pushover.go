@@ -79,8 +79,8 @@ func formatEvent(e Event) (title, message string) {
 	case KindImportCompleted:
 		if s := e.Stats; s != nil {
 			return fmt.Sprintf("cardimportd: %s imported", display),
-				fmt.Sprintf("%d files imported, %d skipped, %d failed\nDuration: %s",
-					s.Imported, s.Skipped, s.Failed, s.Duration.Round(time.Second))
+				fmt.Sprintf("%d files imported (%s), %d skipped, %d failed\nDuration: %s",
+					s.Imported, humanizeBytes(s.BytesCopied), s.Skipped, s.Failed, s.Duration.Round(time.Second))
 		}
 		return "cardimportd: import complete", "Import finished."
 	case KindImportFailed:
@@ -88,6 +88,19 @@ func formatEvent(e Event) (title, message string) {
 			fmt.Sprintf("Import failed for %s\n%s", display, e.Detail)
 	default:
 		return "cardimportd", string(e.Kind)
+	}
+}
+
+func humanizeBytes(b int64) string {
+	switch {
+	case b >= 1_000_000_000:
+		return fmt.Sprintf("%.1f GB", float64(b)/1_000_000_000)
+	case b >= 1_000_000:
+		return fmt.Sprintf("%.1f MB", float64(b)/1_000_000)
+	case b >= 1_000:
+		return fmt.Sprintf("%.1f KB", float64(b)/1_000)
+	default:
+		return fmt.Sprintf("%d B", b)
 	}
 }
 

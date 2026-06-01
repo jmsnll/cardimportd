@@ -42,14 +42,12 @@ linters:
         # hugeParam: changing Event/ProgressEvent to pointer receivers is a larger refactor
         - hugeParam
 
-exclusions:
-  rules:
+issues:
+  max-same-issues: 0
+  exclude-rules:
     # Test files get a lighter touch
     - path: _test\.go
       linters:
         - gosec
         - errcheck
         - gocritic
-
-issues:
-  max-same-issues: 0
