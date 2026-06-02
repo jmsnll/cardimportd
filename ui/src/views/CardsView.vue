@@ -49,7 +49,14 @@
               <td>
                 <template v-if="editingUuid === uuid">
                   <div class="control">
+                    <div v-if="users.length > 0" class="select is-small is-fullwidth">
+                      <select v-model="editOwner" :aria-label="`Owner for card ${uuid}`">
+                        <option value="">— select owner —</option>
+                        <option v-for="u in users" :key="u.name" :value="u.name">{{ u.name }}</option>
+                      </select>
+                    </div>
                     <input
+                      v-else
                       v-model="editOwner"
                       class="input is-small"
                       type="text"
@@ -108,6 +115,12 @@
                   </template>
                   <template v-else>
                     <button
+                      v-if="entry.status === 'pending'"
+                      class="button is-warning is-small"
+                      @click="activatingUuid = String(uuid)"
+                      :aria-label="`Register card ${uuid}`"
+                    >Register</button>
+                    <button
                       v-if="mountedUuids.has(String(uuid))"
                       class="button is-info is-light is-small"
                       @click="runPreflight(String(uuid))"
@@ -137,6 +150,14 @@
         </table>
       </div>
     </template>
+
+    <ActivateCardModal
+      v-if="activatingUuid"
+      :uuid="activatingUuid"
+      :users="users"
+      @confirm="activateCard"
+      @cancel="activatingUuid = null"
+    />
   </div>
 </template>
 
@@ -144,6 +165,7 @@
 import { ref, onMounted, onUnmounted, inject, nextTick } from 'vue'
 import { getCards, deleteCard } from '../api'
 import type { CardEntry, CardStatus } from '../types'
+import ActivateCardModal from '../components/ActivateCardModal.vue'
 
 const cards = ref<Record<string, CardEntry>>({})
 const error = ref<string | null>(null)
@@ -153,6 +175,9 @@ const editOwner = ref('')
 const editLabel = ref('')
 const editDestTemplate = ref('')
 const editInputs: Record<string, HTMLInputElement> = {}
+
+const users = ref<Array<{ name: string }>>([])
+const activatingUuid = ref<string | null>(null)
 
 const mountedUuids = ref<Set<string>>(new Set())
 const lastImport = ref<Record<string, string>>({})
@@ -171,6 +196,13 @@ async function load() {
   } finally {
     loading.value = false
   }
+}
+
+async function loadUsers() {
+  try {
+    const res = await fetch('/api/users')
+    if (res.ok) users.value = await res.json()
+  } catch { /* non-fatal */ }
 }
 
 async function loadStatus() {
@@ -236,6 +268,25 @@ function cancelEdit() {
   editDestTemplate.value = ''
 }
 
+async function activateCard(payload: { owner: string; label: string; status: 'active' | 'pending' }) {
+  if (!activatingUuid.value) return
+  const uuid = activatingUuid.value
+  activatingUuid.value = null
+  try {
+    const res = await fetch(`/api/cards/${uuid}`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ owner: payload.owner, label: payload.label, status: payload.status }),
+    })
+    const body = await res.json().catch(() => ({}))
+    if (!res.ok) throw new Error((body as { error?: string }).error ?? 'HTTP ' + res.status)
+    showToast(payload.status === 'active' ? 'Card activated' : 'Card saved')
+    await load()
+  } catch (err) {
+    showToast((err as Error).message, 'error')
+  }
+}
+
 async function saveCard(uuid: string, status: CardStatus) {
   try {
     const res = await fetch(`/api/cards/${uuid}`, {
@@ -272,6 +323,7 @@ async function removeCard(uuid: string) {
 onMounted(() => {
   window.addEventListener('cards:refresh', onCardsRefresh)
   void load()
+  void loadUsers()
   void loadStatus()
   void loadHistory()
 })
