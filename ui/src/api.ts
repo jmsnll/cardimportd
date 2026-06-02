@@ -1,4 +1,4 @@
-import type { Config, CardEntry, CardStatus, HistoryEntry, StatusResponse, PreflightResult } from './types'
+import type { Config, CardEntry, CardStatus, HistoryEntry, StatusResponse, PreflightResult, User } from './types'
 
 async function apiFetch<T>(path: string, opts?: RequestInit): Promise<T> {
   const res = await fetch(path, {
@@ -59,4 +59,20 @@ export function getStatus(): Promise<StatusResponse> {
 
 export function getPreflight(uuid: string): Promise<PreflightResult> {
   return apiFetch<PreflightResult>(`/api/preflight/${encodeURIComponent(uuid)}`)
+}
+
+export function getUsers(): Promise<User[]> {
+  return apiFetch<User[]>('/api/users')
+}
+
+export function createUser(user: User): Promise<{ ok: boolean }> {
+  return apiFetch<{ ok: boolean }>('/api/users', { method: 'POST', body: JSON.stringify(user) })
+}
+
+export function updateUser(name: string, patch: Partial<User>): Promise<{ ok: boolean }> {
+  return apiFetch<{ ok: boolean }>(`/api/users/${encodeURIComponent(name)}`, { method: 'PUT', body: JSON.stringify(patch) })
+}
+
+export function deleteUser(name: string): Promise<{ ok: boolean }> {
+  return apiFetch<{ ok: boolean }>(`/api/users/${encodeURIComponent(name)}`, { method: 'DELETE' })
 }

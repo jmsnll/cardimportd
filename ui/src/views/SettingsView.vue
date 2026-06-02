@@ -106,12 +106,75 @@
       </div>
     </div>
   </div>
+
+  <div class="box mt-4">
+    <div class="level mb-3">
+      <div class="level-left">
+        <div class="level-item"><h2 class="title is-5 mb-0">People</h2></div>
+      </div>
+      <div class="level-right">
+        <div class="level-item">
+          <button class="button is-small is-link" @click="showAddUser = true" v-if="!showAddUser">Add person</button>
+        </div>
+      </div>
+    </div>
+
+    <div v-if="showAddUser" class="field has-addons mb-3">
+      <div class="control is-expanded">
+        <input class="input is-small" type="text" placeholder="Name" v-model="newUserName" @keyup.enter="addUser" />
+      </div>
+      <div class="control">
+        <button class="button is-small is-link" @click="addUser" :disabled="!newUserName.trim()">Add</button>
+      </div>
+      <div class="control">
+        <button class="button is-small is-light" @click="showAddUser = false; newUserName = ''">Cancel</button>
+      </div>
+    </div>
+
+    <div v-if="usersLoading" class="has-text-grey is-size-7 py-3">Loading…</div>
+    <div v-else-if="users.length === 0" class="has-text-grey is-size-7 py-3">
+      No people registered yet. People registered here can be selected from a dropdown when assigning cards.
+    </div>
+    <table v-else class="table is-fullwidth is-narrow mb-0">
+      <thead>
+        <tr>
+          <th>Name</th>
+          <th>Destination template override</th>
+          <th></th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr v-for="user in users" :key="user.name">
+          <td>
+            <input v-if="editingUser === user.name" class="input is-small" v-model="editUserName" />
+            <span v-else>{{ user.name }}</span>
+          </td>
+          <td>
+            <input v-if="editingUser === user.name" class="input is-small" v-model="editUserTemplate" placeholder="{{ .Owner }}/{{ .Year }}/…" />
+            <span v-else class="has-text-grey is-size-7">{{ user.destination_template || '—' }}</span>
+          </td>
+          <td class="is-narrow">
+            <div class="buttons are-small is-right">
+              <template v-if="editingUser === user.name">
+                <button class="button is-success is-small" @click="saveUser(user.name)">Save</button>
+                <button class="button is-light is-small" @click="editingUser = null">Cancel</button>
+              </template>
+              <template v-else>
+                <button class="button is-light is-small" @click="startEditUser(user)">Edit</button>
+                <button class="button is-danger is-light is-small" @click="removeUser(user.name)">Remove</button>
+              </template>
+            </div>
+          </td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
 </template>
 
 <script setup lang="ts">
-import { ref, watch, inject } from 'vue'
-import { saveConfig } from '../api'
-import type { Config } from '../types'
+import { ref, watch, inject, onMounted } from 'vue'
+import { saveConfig, getUsers, createUser, updateUser, deleteUser } from '../api'
+import type { Config, User } from '../types'
 import TagInput from '../components/TagInput.vue'
 import PathInput from '../components/PathInput.vue'
 
@@ -141,6 +204,60 @@ watch(() => props.config, (cfg) => {
   writeManifest.value = cfg.write_manifest ?? false
   destinationTemplate.value = cfg.destination_template ?? ''
 })
+
+const users = ref<User[]>([])
+const usersLoading = ref(false)
+const showAddUser = ref(false)
+const newUserName = ref('')
+const editingUser = ref<string | null>(null)
+const editUserName = ref('')
+const editUserTemplate = ref('')
+
+async function loadUsers() {
+  usersLoading.value = true
+  try { users.value = await getUsers() } catch { /* non-fatal */ }
+  finally { usersLoading.value = false }
+}
+
+async function addUser() {
+  const name = newUserName.value.trim()
+  if (!name) return
+  try {
+    await createUser({ name })
+    showToast('Person added')
+    newUserName.value = ''
+    showAddUser.value = false
+    await loadUsers()
+  } catch (err) { showToast((err as Error).message, 'error') }
+}
+
+function startEditUser(user: User) {
+  editingUser.value = user.name
+  editUserName.value = user.name
+  editUserTemplate.value = user.destination_template ?? ''
+}
+
+async function saveUser(oldName: string) {
+  try {
+    await updateUser(oldName, { name: editUserName.value.trim() || oldName, destination_template: editUserTemplate.value.trim() || undefined })
+    showToast('Person updated')
+    editingUser.value = null
+    await loadUsers()
+  } catch (err) { showToast((err as Error).message, 'error') }
+}
+
+async function removeUser(name: string) {
+  try {
+    await deleteUser(name)
+    showToast('Person removed')
+    await loadUsers()
+  } catch (err) {
+    const msg = (err as Error).message
+    showToast(msg.includes('referenced') ? msg + ' — reassign cards first' : msg, 'error')
+  }
+}
+
+onMounted(loadUsers)
 
 async function save() {
   const updated: Config = {

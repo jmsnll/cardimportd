@@ -63,6 +63,11 @@ export interface NotificationConfig {
   webhook?: WebhookConfig
 }
 
+export interface User {
+  name: string
+  destination_template?: string
+}
+
 export interface Config {
   watch_paths: string[]
   import_root: string
@@ -75,4 +80,5 @@ export interface Config {
   post_import_hook?: string
   write_manifest?: boolean
   destination_template?: string
+  users?: User[]
 }
