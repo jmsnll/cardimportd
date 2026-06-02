@@ -19,6 +19,16 @@
 
   <div class="tabs is-brand mb-0" role="tablist" aria-label="Main navigation" @keydown="onTabKeydown">
     <ul>
+      <li :class="{ 'is-active': activeTab === 'dashboard' }">
+        <a
+          id="tab-dashboard"
+          role="tab"
+          :aria-selected="activeTab === 'dashboard'"
+          :tabindex="activeTab === 'dashboard' ? 0 : -1"
+          href="#panel-dashboard"
+          @click.prevent="activeTab = 'dashboard'"
+        >Dashboard</a>
+      </li>
       <li :class="{ 'is-active': activeTab === 'cards' }">
         <a
           id="tab-cards"
@@ -64,6 +74,15 @@
 
   <main class="section pt-5">
     <div class="container">
+      <section
+        id="panel-dashboard"
+        role="tabpanel"
+        aria-labelledby="tab-dashboard"
+        v-show="activeTab === 'dashboard'"
+      >
+        <DashboardView />
+      </section>
+
       <section
         id="panel-cards"
         role="tabpanel"
@@ -131,13 +150,14 @@ import CardsView from './views/CardsView.vue'
 import HistoryView from './views/HistoryView.vue'
 import SettingsView from './views/SettingsView.vue'
 import NotificationsView from './views/NotificationsView.vue'
+import DashboardView from './views/DashboardView.vue'
 
 const { activeImport, mountedCards } = useEventStream()
 
-type Tab = 'cards' | 'history' | 'settings' | 'notifications'
-const tabs: Tab[] = ['cards', 'history', 'settings', 'notifications']
+type Tab = 'dashboard' | 'cards' | 'history' | 'settings' | 'notifications'
+const tabs: Tab[] = ['dashboard', 'cards', 'history', 'settings', 'notifications']
 
-const activeTab = ref<Tab>('cards')
+const activeTab = ref<Tab>('dashboard')
 const config = ref<Config | null>(null)
 const configError = ref<string | null>(null)
 const toast = ref<InstanceType<typeof Toast> | null>(null)

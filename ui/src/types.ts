@@ -82,3 +82,18 @@ export interface Config {
   destination_template?: string
   users?: User[]
 }
+
+export interface StorageStats {
+  total_bytes: number
+  free_bytes: number
+  available_bytes: number
+}
+
+export interface DashboardResponse {
+  mounted_cards: MountedCard[]
+  active_import: import('./composables/useEventStream').ImportProgress | null
+  recent_history: HistoryEntry[]
+  storage?: StorageStats
+  watch_paths: string[]
+  pending_cards: Record<string, CardEntry>
+}

@@ -1,4 +1,4 @@
-import type { Config, CardEntry, CardStatus, HistoryEntry, StatusResponse, PreflightResult, User } from './types'
+import type { Config, CardEntry, CardStatus, HistoryEntry, StatusResponse, PreflightResult, User, DashboardResponse } from './types'
 
 async function apiFetch<T>(path: string, opts?: RequestInit): Promise<T> {
   const res = await fetch(path, {
@@ -75,4 +75,14 @@ export function updateUser(name: string, patch: Partial<User>): Promise<{ ok: bo
 
 export function deleteUser(name: string): Promise<{ ok: boolean }> {
   return apiFetch<{ ok: boolean }>(`/api/users/${encodeURIComponent(name)}`, { method: 'DELETE' })
+}
+
+export function getDashboard(): Promise<DashboardResponse> {
+  return apiFetch<DashboardResponse>('/api/dashboard')
+}
+
+export function triggerImport(uuid: string): Promise<{ ok: boolean }> {
+  return apiFetch<{ ok: boolean }>(`/api/cards/${encodeURIComponent(uuid)}/import`, {
+    method: 'POST',
+  })
 }
