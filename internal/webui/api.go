@@ -9,16 +9,70 @@ import (
 	"os"
 	"path/filepath"
 	"sort"
+	"strconv"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/jmsnll/cardimportd/internal/config"
+	"github.com/jmsnll/cardimportd/internal/history"
 	"github.com/jmsnll/cardimportd/internal/notify"
 )
 
+// MountedVolume describes a card currently visible to the daemon.
+type MountedVolume struct {
+	UUID       string `json:"uuid"`
+	MountPoint string `json:"mount_point"`
+	Device     string `json:"device"`
+	FSType     string `json:"fstype"`
+}
+
+// StatusResponse is returned by GET /api/status.
+type StatusResponse struct {
+	MountedCards []MountedVolume `json:"mounted_cards"`
+	ActiveImport *ProgressEvent  `json:"active_import"`
+}
+
 type apiHandler struct {
-	acc ConfigAccessor
-	bus *EventBus
+	acc       ConfigAccessor
+	bus       *EventBus
+	hist      *history.Log
+	getMounts func() []MountedVolume
+
+	mu           sync.RWMutex
+	activeImport *ProgressEvent
+}
+
+// startEventLoop subscribes to the bus and keeps activeImport up-to-date.
+func (h *apiHandler) startEventLoop(ctx context.Context) {
+	if h.bus == nil {
+		return
+	}
+	ch := h.bus.Subscribe()
+	go func() {
+		defer h.bus.Unsubscribe(ch)
+		for {
+			select {
+			case <-ctx.Done():
+				return
+			case evt, ok := <-ch:
+				if !ok {
+					return
+				}
+				switch evt.Kind {
+				case ProgressKindStarted, ProgressKindProgress:
+					cp := evt
+					h.mu.Lock()
+					h.activeImport = &cp
+					h.mu.Unlock()
+				case ProgressKindCompleted, ProgressKindFailed:
+					h.mu.Lock()
+					h.activeImport = nil
+					h.mu.Unlock()
+				}
+			}
+		}
+	}()
 }
 
 func writeJSON(w http.ResponseWriter, v any, status int) {
@@ -313,6 +367,113 @@ func (h *apiHandler) handleHealth(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	writeJSON(w, map[string]string{"status": "ok"}, http.StatusOK)
+}
+
+// -- /api/history -------------------------------------------------------------
+
+func (h *apiHandler) handleHistory(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodGet {
+		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+	limit := 50
+	if s := r.URL.Query().Get("limit"); s != "" {
+		if n, err := strconv.Atoi(s); err == nil && n > 0 {
+			if n > 500 {
+				n = 500
+			}
+			limit = n
+		}
+	}
+	entries, err := h.hist.Recent(limit)
+	if err != nil {
+		slog.Error("webui: history read", "err", err)
+		apiError(w, "failed to read history", http.StatusInternalServerError)
+		return
+	}
+	if entries == nil {
+		entries = []history.Entry{}
+	}
+	writeJSON(w, entries, http.StatusOK)
+}
+
+// -- /api/status --------------------------------------------------------------
+
+func (h *apiHandler) handleStatus(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodGet {
+		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+	h.mu.RLock()
+	ai := h.activeImport
+	h.mu.RUnlock()
+
+	var mounts []MountedVolume
+	if h.getMounts != nil {
+		mounts = h.getMounts()
+	}
+	if mounts == nil {
+		mounts = []MountedVolume{}
+	}
+
+	resp := StatusResponse{
+		MountedCards: mounts,
+		ActiveImport: ai,
+	}
+	writeJSON(w, resp, http.StatusOK)
+}
+
+// -- /api/preflight/{uuid} ----------------------------------------------------
+
+func (h *apiHandler) handlePreflight(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodGet {
+		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+	uuid := strings.TrimPrefix(r.URL.Path, "/api/preflight/")
+	if uuid == "" {
+		apiError(w, "uuid is required", http.StatusBadRequest)
+		return
+	}
+
+	var mountPoint string
+	if h.getMounts != nil {
+		for _, m := range h.getMounts() {
+			if m.UUID == uuid {
+				mountPoint = m.MountPoint
+				break
+			}
+		}
+	}
+	if mountPoint == "" {
+		apiError(w, "card not currently mounted", http.StatusNotFound)
+		return
+	}
+
+	cfg := h.acc.Get()
+	extensions := make(map[string]bool, len(cfg.FileExtensions))
+	for _, ext := range cfg.FileExtensions {
+		extensions[strings.ToLower(ext)] = true
+	}
+
+	// TODO: future improvement — check destination to compute already-imported
+	// count and return a more accurate to_import value.
+	type preflightResult struct {
+		UUID     string `json:"uuid"`
+		OnCard   int    `json:"total_on_card"`
+		ToImport int    `json:"to_import"`
+	}
+	var onCard int
+	_ = filepath.Walk(mountPoint, func(path string, info os.FileInfo, err error) error {
+		if err != nil || info.IsDir() {
+			return nil
+		}
+		if extensions[strings.ToLower(filepath.Ext(path))] {
+			onCard++
+		}
+		return nil
+	})
+	writeJSON(w, preflightResult{UUID: uuid, OnCard: onCard, ToImport: onCard}, http.StatusOK)
 }
 
 // -- helpers ------------------------------------------------------------------

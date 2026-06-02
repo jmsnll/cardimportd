@@ -18,6 +18,7 @@ import (
 	"time"
 
 	"github.com/jmsnll/cardimportd/internal/config"
+	"github.com/jmsnll/cardimportd/internal/history"
 	"github.com/jmsnll/cardimportd/internal/importer"
 	"github.com/jmsnll/cardimportd/internal/notify"
 	"github.com/jmsnll/cardimportd/internal/watcher"
@@ -94,6 +95,8 @@ func main() {
 		cfg = c
 	}
 
+	histLog := history.New("/var/log/cardimportd-history.jsonl")
+
 	bus := webui.NewEventBus(32)
 
 	// activeMounts tracks cards currently mounted, keyed by UUID. It is updated
@@ -121,7 +124,7 @@ func main() {
 			}
 			if v, ok := activeMounts.Load(uuid); ok {
 				slog.Info("card activated while mounted, triggering import", slog.String("uuid", uuid))
-				go handleMount(ctx, getCfg, notifier, setCfg, bus, v.(watcher.MountEvent), *cfgPath, &activeMounts)
+				go handleMount(ctx, getCfg, notifier, setCfg, bus, v.(watcher.MountEvent), *cfgPath, &activeMounts, histLog)
 			}
 		}
 	}
@@ -132,8 +135,22 @@ func main() {
 			Set:  setCfg,
 			Path: *cfgPath,
 		}
+		getMounts := func() []webui.MountedVolume {
+			var out []webui.MountedVolume
+			activeMounts.Range(func(k, v any) bool {
+				evt := v.(watcher.MountEvent)
+				out = append(out, webui.MountedVolume{
+					UUID:       k.(string),
+					MountPoint: evt.MountPoint,
+					Device:     evt.Device,
+					FSType:     evt.FSType,
+				})
+				return true
+			})
+			return out
+		}
 		go func() {
-			srv := webui.New(acc, bus, *webuiPort)
+			srv := webui.New(acc, bus, histLog, getMounts, *webuiPort)
 			if err := srv.Start(ctx); err != nil {
 				slog.Error("webui: stopped", "error", err)
 			}
@@ -175,12 +192,16 @@ func main() {
 				activeMounts.Range(func(k, v any) bool {
 					if v.(watcher.MountEvent).Device == evt.Device {
 						activeMounts.Delete(k)
+						bus.Publish(webui.ProgressEvent{
+							Kind:       webui.ProgressKindCardRemoved,
+							MountPoint: evt.MountPoint,
+						})
 						return false
 					}
 					return true
 				})
 			case watcher.Mounted:
-				go handleMount(ctx, getCfg, notifier, setCfg, bus, evt, *cfgPath, &activeMounts)
+				go handleMount(ctx, getCfg, notifier, setCfg, bus, evt, *cfgPath, &activeMounts, histLog)
 			}
 		}
 	}
@@ -195,6 +216,7 @@ func handleMount(
 	evt watcher.MountEvent,
 	cfgPath string,
 	activeMounts *sync.Map,
+	histLog *history.Log,
 ) {
 	cfg := getCfg()
 	slog.Info("mount detected", "mount_point", evt.MountPoint, "device", evt.Device)
@@ -205,6 +227,12 @@ func handleMount(
 		return
 	}
 	activeMounts.Store(uuid, evt)
+	bus.Publish(webui.ProgressEvent{
+		Kind:       webui.ProgressKindCardDetected,
+		CardUUID:   uuid,
+		MountPoint: evt.MountPoint,
+		FSType:     evt.FSType,
+	})
 
 	slog.Info("card identified", "uuid", uuid, "mount_point", evt.MountPoint)
 
@@ -297,6 +325,18 @@ func handleMount(
 		Kind:        webui.ProgressKindCompleted,
 		Owner:       entry.Owner,
 		CardUUID:    uuid,
+		Total:       res.Total,
+		Imported:    res.Imported,
+		Skipped:     res.Skipped,
+		Failed:      res.Failed,
+		BytesCopied: res.BytesCopied,
+	})
+	_ = histLog.Append(history.Entry{
+		UUID:        uuid,
+		Owner:       entry.Owner,
+		MountPath:   evt.MountPoint,
+		StartedAt:   start,
+		CompletedAt: time.Now().UTC(),
 		Total:       res.Total,
 		Imported:    res.Imported,
 		Skipped:     res.Skipped,

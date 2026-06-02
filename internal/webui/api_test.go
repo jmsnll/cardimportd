@@ -10,6 +10,7 @@ import (
 	"testing"
 
 	"github.com/jmsnll/cardimportd/internal/config"
+	"github.com/jmsnll/cardimportd/internal/history"
 )
 
 // newTestAccessor creates a ConfigAccessor backed by a temp config file.
@@ -42,7 +43,8 @@ func newTestAccessor(t *testing.T) (ConfigAccessor, func() *config.Config) {
 func newHandler(t *testing.T) (*apiHandler, func() *config.Config) {
 	t.Helper()
 	acc, getCurrent := newTestAccessor(t)
-	return &apiHandler{acc: acc, bus: nil}, getCurrent
+	hist := history.New(t.TempDir() + "/history.jsonl")
+	return &apiHandler{acc: acc, bus: nil, hist: hist, getMounts: func() []MountedVolume { return nil }}, getCurrent
 }
 
 func jsonBody(t *testing.T, v any) *bytes.Buffer {
@@ -317,5 +319,202 @@ func TestHandleNotifyTest_UnknownAdapter(t *testing.T) {
 	h.handleNotifyTest(rr, req)
 	if rr.Code != http.StatusBadRequest {
 		t.Fatalf("status = %d, want 400", rr.Code)
+	}
+}
+
+// -- /api/history --
+
+func TestHandleHistory_EmptyReturnsArray(t *testing.T) {
+	h, _ := newHandler(t)
+	req := httptest.NewRequest(http.MethodGet, "/api/history", nil)
+	rr := httptest.NewRecorder()
+	h.handleHistory(rr, req)
+
+	if rr.Code != http.StatusOK {
+		t.Fatalf("status = %d, want 200", rr.Code)
+	}
+	var entries []history.Entry
+	if err := json.Unmarshal(rr.Body.Bytes(), &entries); err != nil {
+		t.Fatalf("decode response: %v", err)
+	}
+	if entries == nil {
+		t.Error("expected non-nil empty array, got nil")
+	}
+	if len(entries) != 0 {
+		t.Errorf("expected 0 entries, got %d", len(entries))
+	}
+}
+
+func TestHandleHistory_LimitQueryParam(t *testing.T) {
+	h, _ := newHandler(t)
+	// Append 10 entries.
+	for i := 0; i < 10; i++ {
+		if err := h.hist.Append(history.Entry{UUID: "test-uuid", Owner: "james"}); err != nil {
+			t.Fatalf("append: %v", err)
+		}
+	}
+
+	req := httptest.NewRequest(http.MethodGet, "/api/history?limit=5", nil)
+	rr := httptest.NewRecorder()
+	h.handleHistory(rr, req)
+
+	if rr.Code != http.StatusOK {
+		t.Fatalf("status = %d, want 200", rr.Code)
+	}
+	var entries []history.Entry
+	if err := json.Unmarshal(rr.Body.Bytes(), &entries); err != nil {
+		t.Fatalf("decode response: %v", err)
+	}
+	if len(entries) != 5 {
+		t.Errorf("expected 5 entries with limit=5, got %d", len(entries))
+	}
+}
+
+func TestHandleHistory_WrongMethod(t *testing.T) {
+	h, _ := newHandler(t)
+	req := httptest.NewRequest(http.MethodPost, "/api/history", nil)
+	rr := httptest.NewRecorder()
+	h.handleHistory(rr, req)
+	if rr.Code != http.StatusMethodNotAllowed {
+		t.Fatalf("status = %d, want 405", rr.Code)
+	}
+}
+
+// -- /api/status --
+
+func TestHandleStatus_NoMounts(t *testing.T) {
+	h, _ := newHandler(t)
+	req := httptest.NewRequest(http.MethodGet, "/api/status", nil)
+	rr := httptest.NewRecorder()
+	h.handleStatus(rr, req)
+
+	if rr.Code != http.StatusOK {
+		t.Fatalf("status = %d, want 200", rr.Code)
+	}
+	var resp StatusResponse
+	if err := json.Unmarshal(rr.Body.Bytes(), &resp); err != nil {
+		t.Fatalf("decode response: %v", err)
+	}
+	if resp.MountedCards == nil {
+		t.Error("mounted_cards should not be nil")
+	}
+	if len(resp.MountedCards) != 0 {
+		t.Errorf("expected 0 mounted cards, got %d", len(resp.MountedCards))
+	}
+	if resp.ActiveImport != nil {
+		t.Error("active_import should be nil when no import is running")
+	}
+}
+
+func TestHandleStatus_WithMounts(t *testing.T) {
+	h, _ := newHandler(t)
+	h.getMounts = func() []MountedVolume {
+		return []MountedVolume{
+			{UUID: "AABB-1234", MountPoint: "/volumeUSB1/usbshare1", Device: "/dev/sda1", FSType: "exfat"},
+		}
+	}
+	req := httptest.NewRequest(http.MethodGet, "/api/status", nil)
+	rr := httptest.NewRecorder()
+	h.handleStatus(rr, req)
+
+	if rr.Code != http.StatusOK {
+		t.Fatalf("status = %d, want 200", rr.Code)
+	}
+	var resp StatusResponse
+	if err := json.Unmarshal(rr.Body.Bytes(), &resp); err != nil {
+		t.Fatalf("decode response: %v", err)
+	}
+	if len(resp.MountedCards) != 1 {
+		t.Errorf("expected 1 mounted card, got %d", len(resp.MountedCards))
+	}
+	if resp.MountedCards[0].UUID != "AABB-1234" {
+		t.Errorf("unexpected UUID: %q", resp.MountedCards[0].UUID)
+	}
+}
+
+func TestHandleStatus_WrongMethod(t *testing.T) {
+	h, _ := newHandler(t)
+	req := httptest.NewRequest(http.MethodPost, "/api/status", nil)
+	rr := httptest.NewRecorder()
+	h.handleStatus(rr, req)
+	if rr.Code != http.StatusMethodNotAllowed {
+		t.Fatalf("status = %d, want 405", rr.Code)
+	}
+}
+
+// -- /api/preflight/{uuid} --
+
+func TestHandlePreflight_NotMounted(t *testing.T) {
+	h, _ := newHandler(t)
+	req := httptest.NewRequest(http.MethodGet, "/api/preflight/AABB-1234", nil)
+	rr := httptest.NewRecorder()
+	h.handlePreflight(rr, req)
+	if rr.Code != http.StatusNotFound {
+		t.Fatalf("status = %d, want 404", rr.Code)
+	}
+}
+
+func TestHandlePreflight_WrongMethod(t *testing.T) {
+	h, _ := newHandler(t)
+	req := httptest.NewRequest(http.MethodPost, "/api/preflight/AABB-1234", nil)
+	rr := httptest.NewRecorder()
+	h.handlePreflight(rr, req)
+	if rr.Code != http.StatusMethodNotAllowed {
+		t.Fatalf("status = %d, want 405", rr.Code)
+	}
+}
+
+func TestHandlePreflight_MissingUUID(t *testing.T) {
+	h, _ := newHandler(t)
+	req := httptest.NewRequest(http.MethodGet, "/api/preflight/", nil)
+	rr := httptest.NewRecorder()
+	h.handlePreflight(rr, req)
+	if rr.Code != http.StatusBadRequest {
+		t.Fatalf("status = %d, want 400", rr.Code)
+	}
+}
+
+func TestHandlePreflight_CountsFiles(t *testing.T) {
+	dir := t.TempDir()
+	// Create some fake files.
+	for _, name := range []string{"IMG_001.jpg", "IMG_002.RAF", "README.txt"} {
+		f, err := os.Create(dir + "/" + name)
+		if err != nil {
+			t.Fatal(err)
+		}
+		f.Close()
+	}
+
+	h, _ := newHandler(t)
+	h.getMounts = func() []MountedVolume {
+		return []MountedVolume{
+			{UUID: "AABB-1234", MountPoint: dir},
+		}
+	}
+	// Config already has .jpg and .raf extensions from newTestAccessor.
+	req := httptest.NewRequest(http.MethodGet, "/api/preflight/AABB-1234", nil)
+	rr := httptest.NewRecorder()
+	h.handlePreflight(rr, req)
+
+	if rr.Code != http.StatusOK {
+		t.Fatalf("status = %d, want 200: %s", rr.Code, rr.Body)
+	}
+	var result struct {
+		UUID     string `json:"uuid"`
+		OnCard   int    `json:"total_on_card"`
+		ToImport int    `json:"to_import"`
+	}
+	if err := json.Unmarshal(rr.Body.Bytes(), &result); err != nil {
+		t.Fatalf("decode response: %v", err)
+	}
+	if result.UUID != "AABB-1234" {
+		t.Errorf("uuid = %q, want AABB-1234", result.UUID)
+	}
+	// Expects 2 matching files (.jpg and .raf), not the .txt
+	if result.OnCard != 2 {
+		t.Errorf("total_on_card = %d, want 2", result.OnCard)
+	}
+	if result.ToImport != 2 {
+		t.Errorf("to_import = %d, want 2", result.ToImport)
 	}
 }
