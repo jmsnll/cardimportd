@@ -169,11 +169,91 @@
       </tbody>
     </table>
   </div>
+
+  <div class="box mt-4">
+    <h2 class="title is-5 mb-2">Template Builder</h2>
+    <p class="is-size-7 has-text-grey mb-3">
+      Build a destination template by clicking variable chips below. The template controls where imported files are placed under the import root.
+    </p>
+
+    <div class="field">
+      <label class="label is-small">Template</label>
+      <div class="field has-addons">
+        <div class="control is-expanded">
+          <input
+            id="tb-template"
+            class="input is-small"
+            type="text"
+            placeholder="{{ .Owner }}/{{ .Year }}/{{ .Month }}/{{ .Day }}"
+            v-model="tbTemplate"
+          />
+        </div>
+        <div class="control">
+          <button class="button is-small is-light" @click="tbTemplate = ''" :disabled="!tbTemplate">Clear</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="field">
+      <label class="label is-small">Variables</label>
+      <div class="tags">
+        <span
+          v-for="v in templateVars"
+          :key="v.token"
+          class="tag is-link is-light is-clickable"
+          @click="insertTemplateVar(v.token)"
+          :title="v.description"
+        >{{ v.token }}</span>
+      </div>
+      <p class="help">Click a variable to append it to the template.</p>
+    </div>
+
+    <div class="field" v-if="tbTemplate">
+      <label class="label is-small">Preview</label>
+      <div class="notification is-light py-2 px-3 mb-0 is-size-7 has-text-weight-semibold" style="font-family: monospace">
+        {{ tbPreview }}
+      </div>
+      <p class="help">Example render using placeholder values.</p>
+    </div>
+
+    <div class="field is-grouped mt-4">
+      <div class="control">
+        <button class="button is-small is-link" @click="applyTemplate" :disabled="!tbTemplate">
+          Apply to global template
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <div class="box mt-4">
+    <h2 class="title is-5 mb-2">Watcher status</h2>
+    <div v-if="watchPaths.length === 0" class="has-text-grey is-size-7">No watch paths configured.</div>
+    <div v-else>
+      <p class="is-size-7 has-text-grey mb-3">
+        The daemon polls these paths for USB card readers. Changes require a config save and daemon restart.
+      </p>
+      <table class="table is-narrow is-fullwidth is-size-7">
+        <thead><tr><th>Watch path</th><th>Status</th></tr></thead>
+        <tbody>
+          <tr v-for="path in watchPaths" :key="path">
+            <td style="font-family: monospace">{{ path }}</td>
+            <td>
+              <span
+                class="tag is-size-7"
+                :class="mountedPaths.has(path) ? 'is-success is-light' : 'is-light'"
+              >{{ mountedPaths.has(path) ? 'card detected' : 'watching' }}</span>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+      <p class="help">A "card detected" path has an active mount under it right now.</p>
+    </div>
+  </div>
 </template>
 
 <script setup lang="ts">
-import { ref, watch, inject, onMounted } from 'vue'
-import { saveConfig, getUsers, createUser, updateUser, deleteUser } from '../api'
+import { ref, watch, inject, onMounted, computed } from 'vue'
+import { saveConfig, getUsers, createUser, updateUser, deleteUser, getStatus } from '../api'
 import type { Config, User } from '../types'
 import TagInput from '../components/TagInput.vue'
 import PathInput from '../components/PathInput.vue'
@@ -257,7 +337,61 @@ async function removeUser(name: string) {
   }
 }
 
-onMounted(loadUsers)
+// Template builder
+const tbTemplate = ref('')
+const templateVars = [
+  { token: '{{ .Owner }}', description: 'Card owner name' },
+  { token: '{{ .Year }}', description: 'Year (4-digit)' },
+  { token: '{{ .Month }}', description: 'Month (2-digit)' },
+  { token: '{{ .Day }}', description: 'Day (2-digit)' },
+  { token: '{{ .CameraModel }}', description: 'Camera model from EXIF' },
+  { token: '{{ .CardUUID }}', description: 'Card filesystem UUID' },
+]
+
+function insertTemplateVar(token: string) {
+  tbTemplate.value = tbTemplate.value
+    ? tbTemplate.value + '/' + token
+    : token
+}
+
+const tbPreview = computed(() => {
+  if (!tbTemplate.value) return ''
+  return tbTemplate.value
+    .replace(/\{\{\s*\.Owner\s*\}\}/g, 'Alice')
+    .replace(/\{\{\s*\.Year\s*\}\}/g, '2024')
+    .replace(/\{\{\s*\.Month\s*\}\}/g, '06')
+    .replace(/\{\{\s*\.Day\s*\}\}/g, '15')
+    .replace(/\{\{\s*\.CameraModel\s*\}\}/g, 'Sony-A7IV')
+    .replace(/\{\{\s*\.CardUUID\s*\}\}/g, 'abc12345')
+})
+
+function applyTemplate() {
+  destinationTemplate.value = tbTemplate.value
+  showToast('Template applied — remember to save settings')
+}
+
+// Watcher status
+const mountedPaths = ref<Set<string>>(new Set())
+
+async function loadWatcherStatus() {
+  try {
+    const status = await getStatus()
+    const paths = new Set<string>()
+    for (const card of status.mounted_cards) {
+      for (const wp of watchPaths.value) {
+        if (card.mount_point.startsWith(wp)) {
+          paths.add(wp)
+        }
+      }
+    }
+    mountedPaths.value = paths
+  } catch { /* non-fatal */ }
+}
+
+onMounted(() => {
+  loadUsers()
+  loadWatcherStatus()
+})
 
 async function save() {
   const updated: Config = {
