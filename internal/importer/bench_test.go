@@ -58,6 +58,40 @@ func BenchmarkCheckDupNoExist(b *testing.B) {
 	}
 }
 
+func BenchmarkAlreadyImported(b *testing.B) {
+	sizes := []struct {
+		name  string
+		files int
+	}{
+		{"10files", 10},
+		{"100files", 100},
+		{"1000files", 1000},
+	}
+
+	for _, tc := range sizes {
+		b.Run(tc.name, func(b *testing.B) {
+			cardDir := b.TempDir()
+			for i := range tc.files {
+				name := fmt.Sprintf("DSCF%04d.jpg", i)
+				if err := os.WriteFile(filepath.Join(cardDir, name), []byte("x"), 0o644); err != nil {
+					b.Fatal(err)
+				}
+			}
+			imp := New(makeConfig(b.TempDir()), &discardNotifier{})
+			// Stamp the card so AlreadyImported takes the full read+compare path.
+			if err := writeStamp(cardDir, "UUID", "James", tc.files, false); err != nil {
+				b.Fatal(err)
+			}
+
+			b.ReportAllocs()
+			b.ResetTimer()
+			for b.Loop() {
+				imp.AlreadyImported(cardDir)
+			}
+		})
+	}
+}
+
 func BenchmarkCheckDupSkip(b *testing.B) {
 	dir := b.TempDir()
 	src := filepath.Join(dir, "src.jpg")
