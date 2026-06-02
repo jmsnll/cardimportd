@@ -35,6 +35,7 @@ type FileMeta struct {
 	DateTimeOriginal time.Time
 	CameraModel      string
 	Source           Source
+	Rating           int // 0 = unrated; 1–5 = star rating (EXIF tag 0x4746)
 }
 
 // Extract returns FileMeta for the file at path.
@@ -110,6 +111,8 @@ func extractEXIFFromBytes(data []byte) (FileMeta, bool) {
 
 	model := readStringTag(rootIfd, 0x0110)
 
+	ratingRaw, _ := readUint16Tag(rootIfd, 0x4746)
+
 	exifIfd, err := rootIfd.ChildWithIfdPath(exifcommon.IfdExifStandardIfdIdentity)
 	if err != nil {
 		return FileMeta{}, false
@@ -129,7 +132,26 @@ func extractEXIFFromBytes(data []byte) (FileMeta, bool) {
 		DateTimeOriginal: dt,
 		CameraModel:      model,
 		Source:           SourceEXIF,
+		Rating:           int(ratingRaw),
 	}, true
+}
+
+// readUint16Tag returns the uint16 value of the first matching SHORT tag in
+// ifd, and true if found.
+func readUint16Tag(ifd *exif.Ifd, tagID uint16) (uint16, bool) {
+	entries, err := ifd.FindTagWithId(tagID)
+	if err != nil || len(entries) == 0 {
+		return 0, false
+	}
+	v, err := entries[0].Value()
+	if err != nil {
+		return 0, false
+	}
+	vals, ok := v.([]uint16)
+	if !ok || len(vals) == 0 {
+		return 0, false
+	}
+	return vals[0], true
 }
 
 // readStringTag returns the string value of the first matching tag in ifd, or

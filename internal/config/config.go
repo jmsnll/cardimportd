@@ -108,6 +108,7 @@ type Config struct {
 	PostImportHook      string               `yaml:"post_import_hook,omitempty" json:"post_import_hook,omitempty"`
 	WriteManifest       *bool                `yaml:"write_manifest,omitempty" json:"write_manifest,omitempty"`
 	DestinationTemplate string               `yaml:"destination_template,omitempty" json:"destination_template,omitempty"`
+	RatedOnly           bool                 `yaml:"rated_only,omitempty"           json:"rated_only,omitempty"`
 }
 
 // Default returns a minimal working configuration seeded with Synology-typical paths.

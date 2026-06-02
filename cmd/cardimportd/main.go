@@ -126,7 +126,7 @@ func main() {
 			}
 			if v, ok := activeMounts.Load(uuid); ok {
 				slog.Info("card activated while mounted, triggering import", slog.String("uuid", uuid))
-				go handleMount(ctx, getCfg, notifier, setCfg, bus, v.(watcher.MountEvent), *cfgPath, &activeMounts, histLog, &importMu)
+				go handleMount(ctx, getCfg, notifier, setCfg, bus, v.(watcher.MountEvent), *cfgPath, &activeMounts, histLog, &importMu, false)
 			}
 		}
 	}
@@ -146,7 +146,7 @@ func main() {
 		}
 		go func() {
 			defer importMu.Unlock()
-			handleMount(ctx, getCfg, notifier, setCfg, bus, v.(watcher.MountEvent), *cfgPath, &activeMounts, histLog, nil)
+			handleMount(ctx, getCfg, notifier, setCfg, bus, v.(watcher.MountEvent), *cfgPath, &activeMounts, histLog, nil, true)
 		}()
 		return nil
 	}
@@ -223,7 +223,7 @@ func main() {
 					return true
 				})
 			case watcher.Mounted:
-				go handleMount(ctx, getCfg, notifier, setCfg, bus, evt, *cfgPath, &activeMounts, histLog, &importMu)
+				go handleMount(ctx, getCfg, notifier, setCfg, bus, evt, *cfgPath, &activeMounts, histLog, &importMu, false)
 			}
 		}
 	}
@@ -240,6 +240,7 @@ func handleMount(
 	activeMounts *sync.Map,
 	histLog *history.Log,
 	importMu *sync.Mutex,
+	forceReimport bool,
 ) {
 	cfg := getCfg()
 	slog.Info("mount detected", "mount_point", evt.MountPoint, "device", evt.Device)
@@ -282,6 +283,14 @@ func handleMount(
 		return
 	}
 
+	imp := importer.New(getCfg(), n)
+
+	if !forceReimport && imp.AlreadyImported(evt.MountPoint) {
+		slog.Info("card already imported, skipping", "uuid", uuid, "mount_point", evt.MountPoint)
+		bus.Publish(webui.ProgressEvent{Kind: webui.ProgressKindCompleted, Owner: entry.Owner, CardUUID: uuid})
+		return
+	}
+
 	if err := n.Notify(ctx, notify.Event{
 		Kind:      notify.KindImportStarted,
 		CardUUID:  uuid,
@@ -301,7 +310,6 @@ func handleMount(
 		defer importMu.Unlock()
 	}
 
-	imp := importer.New(getCfg(), n)
 	bus.Publish(webui.ProgressEvent{Kind: webui.ProgressKindStarted, Owner: entry.Owner, CardUUID: uuid})
 	imp.SetProgressCallback(func(imported, skipped, failed int, bytesCopied int64) {
 		bus.Publish(webui.ProgressEvent{

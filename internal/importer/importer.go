@@ -44,6 +44,21 @@ func (imp *Importer) SetProgressCallback(fn func(imported, skipped, failed int, 
 	imp.onProgress = fn
 }
 
+// AlreadyImported returns true when a stamp file written by a previous clean
+// import exists on mountPath and the current file count matches it. It is
+// O(directory-listing) — fast enough to call before deciding to run an import.
+func (imp *Importer) AlreadyImported(mountPath string) bool {
+	stamp, ok := readStamp(mountPath)
+	if !ok {
+		return false
+	}
+	ext := make(map[string]bool, len(imp.cfg.FileExtensions))
+	for _, e := range imp.cfg.FileExtensions {
+		ext[strings.ToLower(e)] = true
+	}
+	return countMatchingFiles(mountPath, ext) == stamp.FileCount
+}
+
 // Import walks mountPath for supported files and imports them to the
 // per-owner destination under cfg.ImportRoot.
 func (imp *Importer) Import(ctx context.Context, owner, mountPath, cardUUID string) (Result, error) {
@@ -129,11 +144,30 @@ func (imp *Importer) Import(ctx context.Context, owner, mountPath, cardUUID stri
 			slog.Warn("post-import hook failed", "error", hookErr)
 		}
 	}
+
+	if err == nil && res.Failed == 0 {
+		if stampErr := writeStamp(mountPath, cardUUID, owner, res.Total); stampErr != nil {
+			slog.Warn("importer: failed to write stamp", "error", stampErr)
+		}
+	}
+
 	return res, err
+}
+
+// mediaExts are video/audio formats that never carry an EXIF rating. When
+// rated_only is enabled these extensions are always imported.
+var mediaExts = map[string]bool{
+	".mp4": true, ".mov": true, ".mxf": true,
+	".wav": true, ".aif": true,
 }
 
 func (imp *Importer) importFile(ctx context.Context, owner, srcPath, cardUUID string, destTmpl *template.Template) (n int64, hash string, dstPath string, action dupAction, mirrorFailed bool, err error) {
 	m := meta.Extract(srcPath)
+
+	if imp.cfg.RatedOnly && m.Rating == 0 && !mediaExts[strings.ToLower(filepath.Ext(srcPath))] {
+		slog.Debug("importer: skip (no EXIF rating)", "src", srcPath)
+		return 0, "", srcPath, dupSkip, false, nil
+	}
 
 	dstDir, err := resolveDestDir(imp.cfg.ImportRoot, destTmpl, owner, cardUUID, m.CameraModel, m.DateTimeOriginal)
 	if err != nil {
@@ -155,7 +189,7 @@ func (imp *Importer) importFile(ctx context.Context, owner, srcPath, cardUUID st
 		return 0, "", "", 0, false, fmt.Errorf("mkdir: %w", err)
 	}
 
-	n, hash, err = copyVerified(srcPath, dup.dstPath)
+	n, hash, err = CopyVerified(srcPath, dup.dstPath)
 	if err != nil {
 		return 0, "", "", 0, false, err
 	}
@@ -174,7 +208,7 @@ func (imp *Importer) importFile(ctx context.Context, owner, srcPath, cardUUID st
 			if mkErr := os.MkdirAll(filepath.Dir(mirrorDst), 0o755); mkErr != nil {
 				slog.Warn("importer: mirror mkdir failed", "error", mkErr)
 				mirrFail = true
-			} else if _, _, cpErr := copyVerified(srcPath, mirrorDst); cpErr != nil {
+			} else if _, _, cpErr := CopyVerified(srcPath, mirrorDst); cpErr != nil {
 				slog.Warn("importer: mirror copy failed", "error", cpErr)
 				mirrFail = true
 			}

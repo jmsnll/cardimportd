@@ -8,11 +8,11 @@ import (
 	"os"
 )
 
-// copyVerified streams src to a sibling .tmp file, computes SHA-256 on both
+// CopyVerified streams src to a sibling .tmp file, computes SHA-256 on both
 // ends in a single read pass, then renames the .tmp to dst on success.
 // Returns the number of bytes copied and the hex-encoded SHA-256 of the destination.
 // On any failure the .tmp file is removed before returning.
-func copyVerified(src, dst string) (n int64, sha256hex string, err error) {
+func CopyVerified(src, dst string) (n int64, sha256hex string, err error) {
 	tmp := dst + ".tmp"
 
 	srcFile, err := os.Open(src)

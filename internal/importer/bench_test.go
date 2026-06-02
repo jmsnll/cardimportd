@@ -34,7 +34,7 @@ func BenchmarkCopyVerified(b *testing.B) {
 
 			for b.Loop() {
 				dst := filepath.Join(b.TempDir(), fmt.Sprintf("dst_%d.bin", b.N))
-				if _, _, err := copyVerified(src, dst); err != nil {
+				if _, _, err := CopyVerified(src, dst); err != nil {
 					b.Fatal(err)
 				}
 			}

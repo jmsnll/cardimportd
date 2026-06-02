@@ -1,4 +1,4 @@
-.PHONY: help build test bench lint vet build-dsm-amd64 build-dsm-arm64 deploy deploy-restart clean ui
+.PHONY: help build build-photomigrate test bench lint vet build-dsm-amd64 build-dsm-arm64 deploy deploy-restart clean ui
 
 NAS_HOST  ?= root@vault.jamesneill.co.uk
 NAS_BIN    = /var/packages/cardimportd/target/cardimportd
@@ -12,6 +12,7 @@ help:
 	@echo "Usage: make <target>"
 	@echo ""
 	@echo "  build             Build the binary (includes UI)"
+	@echo "  build-photomigrate  Build the photomigrate migration tool"
 	@echo "  ui                Install JS deps and build the web UI"
 	@echo "  test              Run tests with race detector"
 	@echo "  bench             Run benchmarks and save results to benchmarks/"
@@ -32,6 +33,10 @@ ui:
 build: ui
 	@mkdir -p $(BUILD_DIR)
 	go build -o $(BUILD_DIR)/$(BINARY) $(CMD)
+
+build-photomigrate:
+	@mkdir -p $(BUILD_DIR)
+	go build -o $(BUILD_DIR)/photomigrate ./cmd/photomigrate
 
 test:
 	go test -race ./...

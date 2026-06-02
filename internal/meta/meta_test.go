@@ -300,6 +300,87 @@ func TestExtract_FallsBackToMtimeForUnknownExtension(t *testing.T) {
 	}
 }
 
+// buildMinimalJPEGWithRating is like buildMinimalJPEGWithEXIF but adds a
+// Rating tag (0x4746, SHORT) as a third IFD0 entry.
+//
+// IFD0 layout: entry-count(2) + 3×12 + next-IFD(4) = 42 bytes
+//   ifd0Off=8  exifIFDOff=50  valAreaOff=68
+func buildMinimalJPEGWithRating(model, dto string, rating uint16) []byte {
+	const (
+		ifd0Off    = 8
+		exifIFDOff = 50
+		valAreaOff = 68
+	)
+	modelBytes := []byte(model)
+	dtoBytes := []byte(dto)
+	tiff := make([]byte, valAreaOff+len(modelBytes)+len(dtoBytes))
+
+	copy(tiff[0:2], "II")
+	binary.LittleEndian.PutUint16(tiff[2:4], 0x002A)
+	binary.LittleEndian.PutUint32(tiff[4:8], ifd0Off)
+
+	binary.LittleEndian.PutUint16(tiff[ifd0Off:], 3)
+	writeDirEntry(tiff[ifd0Off+2:], 0x0110, 2, uint32(len(modelBytes)), uint32(valAreaOff))
+	writeDirEntry(tiff[ifd0Off+14:], 0x4746, 3, 1, uint32(rating))
+	writeDirEntry(tiff[ifd0Off+26:], 0x8769, 4, 1, uint32(exifIFDOff))
+	binary.LittleEndian.PutUint32(tiff[ifd0Off+38:], 0)
+
+	dtoOff := uint32(valAreaOff + len(modelBytes))
+	binary.LittleEndian.PutUint16(tiff[exifIFDOff:], 1)
+	writeDirEntry(tiff[exifIFDOff+2:], 0x9003, 2, uint32(len(dtoBytes)), dtoOff)
+	binary.LittleEndian.PutUint32(tiff[exifIFDOff+14:], 0)
+
+	copy(tiff[valAreaOff:], modelBytes)
+	copy(tiff[valAreaOff+len(modelBytes):], dtoBytes)
+
+	exifPfx := []byte("Exif\x00\x00")
+	app1Body := append(exifPfx, tiff...)
+	app1Len := uint16(len(app1Body) + 2)
+
+	var j bytes.Buffer
+	j.Write([]byte{0xFF, 0xD8, 0xFF, 0xE1})
+	j.WriteByte(byte(app1Len >> 8))
+	j.WriteByte(byte(app1Len))
+	j.Write(app1Body)
+	j.Write([]byte{0xFF, 0xD9})
+	return j.Bytes()
+}
+
+func TestExtractEXIF_RatingPresent(t *testing.T) {
+	data := buildMinimalJPEGWithRating("X100VI\x00", "2025:05:10 09:30:00\x00", 4)
+	f, err := os.CreateTemp(t.TempDir(), "*.jpg")
+	if err != nil {
+		t.Fatal(err)
+	}
+	_, _ = f.Write(data)
+	path := f.Name()
+	f.Close()
+
+	got := Extract(path)
+	if got.Rating != 4 {
+		t.Errorf("Rating = %d, want 4", got.Rating)
+	}
+	if got.Source != SourceEXIF {
+		t.Errorf("Source = %v, want SourceEXIF", got.Source)
+	}
+}
+
+func TestExtractEXIF_RatingAbsent(t *testing.T) {
+	data := buildMinimalJPEGWithEXIF("X100VI\x00", "2025:05:10 09:30:00\x00")
+	f, err := os.CreateTemp(t.TempDir(), "*.jpg")
+	if err != nil {
+		t.Fatal(err)
+	}
+	_, _ = f.Write(data)
+	path := f.Name()
+	f.Close()
+
+	got := Extract(path)
+	if got.Rating != 0 {
+		t.Errorf("Rating = %d, want 0 when tag absent", got.Rating)
+	}
+}
+
 func TestExtract_DNGFallsBackGracefully(t *testing.T) {
 	// Write random bytes as a .dng file — EXIF extraction will fail and the
 	// function must fall back to mtime without panicking.
