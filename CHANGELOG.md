@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.13.7](https://github.com/jmsnll/cardimportd/compare/v0.13.6...v0.13.7) (2026-06-02)
+
+
+### Bug Fixes
+
+* detect cards mounted at startup and handle exFAT SD cards with no UUID ([205bffa](https://github.com/jmsnll/cardimportd/commit/205bffadf7bd92bda2fe58fd4442710226cb26b1))
+
 ## [0.13.6](https://github.com/jmsnll/cardimportd/compare/v0.13.5...v0.13.6) (2026-06-01)
 
 
