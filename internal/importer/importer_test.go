@@ -322,7 +322,12 @@ func TestImport_MirrorFailDoesNotAbortPrimary(t *testing.T) {
 	cardDir, dstRoot := t.TempDir(), t.TempDir()
 	makeFile(t, cardDir, "a.jpg", randomBytes(t, 512))
 	cfg := makeConfig(dstRoot)
-	cfg.MirrorRoot = "/this/cannot/exist/ever"
+	// Use a regular file as a path component so MkdirAll fails even as root.
+	blockFile := filepath.Join(t.TempDir(), "block")
+	if err := os.WriteFile(blockFile, []byte("x"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	cfg.MirrorRoot = filepath.Join(blockFile, "mirror")
 	res, err := New(cfg, &discardNotifier{}).Import(context.Background(), "James", cardDir, "")
 	if err != nil {
 		t.Fatalf("Import failed: %v", err)
