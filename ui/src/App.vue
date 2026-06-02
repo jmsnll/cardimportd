@@ -12,7 +12,6 @@
         <span class="is-size-7 has-text-white">
           <template v-if="activeImport.owner">{{ activeImport.owner }} · </template>
           {{ activeImport.imported }}/{{ activeImport.total }} files
-          <template v-if="activeImport.bytes_copied"> · {{ formatBytes(activeImport.bytes_copied) }}</template>
         </span>
       </div>
     </div>
@@ -29,6 +28,16 @@
           href="#panel-cards"
           @click.prevent="activeTab = 'cards'"
         >Cards</a>
+      </li>
+      <li :class="{ 'is-active': activeTab === 'history' }">
+        <a
+          id="tab-history"
+          role="tab"
+          :aria-selected="activeTab === 'history'"
+          :tabindex="activeTab === 'history' ? 0 : -1"
+          href="#panel-history"
+          @click.prevent="activeTab = 'history'"
+        >History</a>
       </li>
       <li :class="{ 'is-active': activeTab === 'settings' }">
         <a
@@ -65,6 +74,15 @@
       </section>
 
       <section
+        id="panel-history"
+        role="tabpanel"
+        aria-labelledby="tab-history"
+        v-show="activeTab === 'history'"
+      >
+        <HistoryView />
+      </section>
+
+      <section
         id="panel-settings"
         role="tabpanel"
         aria-labelledby="tab-settings"
@@ -98,6 +116,7 @@
     </div>
   </main>
 
+  <ImportProgress :active-import="activeImport" />
   <Toast ref="toast" />
 </template>
 
@@ -107,14 +126,16 @@ import { useEventStream } from './composables/useEventStream'
 import { getConfig } from './api'
 import type { Config } from './types'
 import Toast from './components/Toast.vue'
+import ImportProgress from './components/ImportProgress.vue'
 import CardsView from './views/CardsView.vue'
+import HistoryView from './views/HistoryView.vue'
 import SettingsView from './views/SettingsView.vue'
 import NotificationsView from './views/NotificationsView.vue'
 
-const { activeImport } = useEventStream()
+const { activeImport, mountedCards } = useEventStream()
 
-type Tab = 'cards' | 'settings' | 'notifications'
-const tabs: Tab[] = ['cards', 'settings', 'notifications']
+type Tab = 'cards' | 'history' | 'settings' | 'notifications'
+const tabs: Tab[] = ['cards', 'history', 'settings', 'notifications']
 
 const activeTab = ref<Tab>('cards')
 const config = ref<Config | null>(null)
@@ -151,13 +172,6 @@ function onTabKeydown(e: KeyboardEvent) {
 function focusTab(tab: Tab) {
   const el = document.getElementById(`tab-${tab}`)
   el?.focus()
-}
-
-function formatBytes(bytes: number): string {
-  if (bytes < 1024) return `${bytes} B`
-  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`
-  if (bytes < 1024 * 1024 * 1024) return `${(bytes / (1024 * 1024)).toFixed(1)} MB`
-  return `${(bytes / (1024 * 1024 * 1024)).toFixed(2)} GB`
 }
 
 onMounted(async () => {

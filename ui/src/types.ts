@@ -1,5 +1,36 @@
 export type CardStatus = 'active' | 'pending'
 
+export interface HistoryEntry {
+  uuid: string
+  owner: string
+  mount_path: string
+  started_at: string
+  completed_at: string
+  total: number
+  imported: number
+  skipped: number
+  failed: number
+  bytes_copied: number
+}
+
+export interface MountedCard {
+  uuid: string
+  mount_point: string
+  device: string
+  fstype: string
+}
+
+export interface StatusResponse {
+  mounted_cards: MountedCard[]
+  active_import: import('./composables/useEventStream').ImportProgress | null
+}
+
+export interface PreflightResult {
+  uuid: string
+  total_on_card: number
+  to_import: number
+}
+
 export interface CardEntry {
   owner: string
   label?: string
