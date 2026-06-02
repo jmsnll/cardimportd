@@ -66,7 +66,7 @@ func main() {
 	dst     := flag.String("dst", "", "destination root; files land at {dst}/YYYY/MM/DD/ (required)")
 	dryRun  := flag.Bool("dry-run", false, "print planned operations without executing")
 	verbose := flag.Bool("verbose", false, "log each file operation")
-	workers := flag.Int("workers", runtime.NumCPU(), "number of parallel copy workers")
+	workers := flag.Int("workers", min(runtime.NumCPU()*4, 32), "number of parallel copy workers")
 	extFlag := flag.String("ext", "", "comma-separated extensions to include (default: same set as cardimportd)")
 	flag.Parse()
 
@@ -190,9 +190,7 @@ func main() {
 				)
 				naiveDst := filepath.Join(dstDir, filepath.Base(path))
 
-				resolveMu.Lock()
-				op, finalDst, resolveErr := resolveAction(path, naiveDst)
-				resolveMu.Unlock()
+				op, finalDst, resolveErr := resolveAction(path, naiveDst, &resolveMu)
 				if resolveErr != nil {
 					logger.Error("could not resolve destination", "src", path, "error", resolveErr)
 					failed.Add(1)
@@ -210,9 +208,7 @@ func main() {
 				var sidecars []sidecarPlan
 				for _, sc := range findSidecars(path) {
 					naiveSCDst := filepath.Join(dstDir, filepath.Base(sc))
-					resolveMu.Lock()
-					scOp, scDst, scErr := resolveAction(sc, naiveSCDst)
-					resolveMu.Unlock()
+					scOp, scDst, scErr := resolveAction(sc, naiveSCDst, &resolveMu)
 					if scErr != nil {
 						logger.Warn("could not resolve sidecar destination", "src", sc, "error", scErr)
 						continue
@@ -356,21 +352,31 @@ const (
 // - actionCreate  destination does not exist
 // - actionSkip    destination exists with identical content (SHA-256 + size match)
 // - actionRename  destination exists but content differs; finalDst is a unique path
-func resolveAction(srcPath, dstPath string) (action, string, error) {
+//
+// mu is held only around stat calls and the rename-candidate probe so that the
+// slow SHA-256 comparison runs concurrently across workers.
+func resolveAction(srcPath, dstPath string, mu *sync.Mutex) (action, string, error) {
+	mu.Lock()
 	srcInfo, err := os.Stat(srcPath)
 	if err != nil {
+		mu.Unlock()
 		return 0, "", fmt.Errorf("stat src: %w", err)
 	}
-
 	dstInfo, err := os.Stat(dstPath)
 	if errors.Is(err, os.ErrNotExist) {
+		mu.Unlock()
 		return actionCreate, dstPath, nil
 	}
 	if err != nil {
+		mu.Unlock()
 		return 0, "", fmt.Errorf("stat dst: %w", err)
 	}
+	srcSize := srcInfo.Size()
+	dstSize := dstInfo.Size()
+	mu.Unlock()
 
-	if srcInfo.Size() == dstInfo.Size() {
+	// SHA-256 comparison is slow for large raws — run outside the lock.
+	if srcSize == dstSize {
 		same, err := sameContent(srcPath, dstPath)
 		if err != nil {
 			return 0, "", fmt.Errorf("content compare: %w", err)
@@ -380,8 +386,12 @@ func resolveAction(srcPath, dstPath string) (action, string, error) {
 		}
 	}
 
+	// Probe for a unique rename candidate under the lock so two workers can't
+	// claim the same slot.
 	ext  := filepath.Ext(dstPath)
 	stem := strings.TrimSuffix(dstPath, ext)
+	mu.Lock()
+	defer mu.Unlock()
 	for i := 2; i <= 999; i++ {
 		candidate := fmt.Sprintf("%s_%d%s", stem, i, ext)
 		if _, err := os.Stat(candidate); errors.Is(err, os.ErrNotExist) {
