@@ -1,5 +1,17 @@
 # Changelog
 
+## [0.13.14](https://github.com/jmsnll/cardimportd/compare/v0.13.13...v0.13.14) (2026-06-02)
+
+
+### Bug Fixes
+
+* **importer:** make MirrorFail test root-safe ([f2f79bb](https://github.com/jmsnll/cardimportd/commit/f2f79bbf467b62821c24bd7372ed9ead1acaa2af))
+
+
+### Performance
+
+* **photomigrate:** parallel worker pool for concurrent file moves ([c6dd448](https://github.com/jmsnll/cardimportd/commit/c6dd448d647a5ec918404a2dd4354695d0f0cf8d))
+
 ## [0.13.13](https://github.com/jmsnll/cardimportd/compare/v0.13.12...v0.13.13) (2026-06-02)
 
 
