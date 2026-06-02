@@ -1,5 +1,22 @@
 # Changelog
 
+## [0.13.13](https://github.com/jmsnll/cardimportd/compare/v0.13.12...v0.13.13) (2026-06-02)
+
+
+### Features
+
+* import stamp, rated_only filter, EXIF rating, force-reimport, photomigrate tool ([1fa501b](https://github.com/jmsnll/cardimportd/commit/1fa501bab2dfaab1d7758d2985424702af44d40a))
+
+
+### Bug Fixes
+
+* acquire importMu before AlreadyImported check to prevent logical race ([f80eedc](https://github.com/jmsnll/cardimportd/commit/f80eedc48d43b0f9617847d5088d7d9410b08a1e))
+* **dashboard:** show owner name on mounted cards and handle zero total during active import ([3a97077](https://github.com/jmsnll/cardimportd/commit/3a97077039ec52219345507333fb79a046126412))
+* include rated_only in import stamp so config change invalidates it ([d4201ca](https://github.com/jmsnll/cardimportd/commit/d4201ca41a12ba94241eb10bbd42dd3cee1aaae6))
+* log stamp walk errors; fix appendAssign lint in test helpers ([5e0a7e4](https://github.com/jmsnll/cardimportd/commit/5e0a7e403253f368d003d18c3737562c491691e3))
+* move history log default to /usr/local/etc/cardimportd/ and expose -history-log flag ([09510f1](https://github.com/jmsnll/cardimportd/commit/09510f128d6ccb1fd27f7a37f83273c703910df6))
+* **photomigrate:** SHA-256 content check for skip, errors.Is, src/dst overlap guard ([9bb4bcb](https://github.com/jmsnll/cardimportd/commit/9bb4bcbc115ed123c676323dff2174885379f4c2))
+
 ## [0.13.12](https://github.com/jmsnll/cardimportd/compare/v0.13.11...v0.13.12) (2026-06-02)
 
 
