@@ -1,4 +1,7 @@
-.PHONY: help build test bench lint vet build-dsm-amd64 build-dsm-arm64 clean ui
+.PHONY: help build test bench lint vet build-dsm-amd64 build-dsm-arm64 deploy deploy-restart clean ui
+
+NAS_HOST  ?= root@vault.jamesneill.co.uk
+NAS_BIN    = /var/packages/cardimportd/target/cardimportd
 
 BINARY    := cardimportd
 CMD       := ./cmd/$(BINARY)
@@ -18,10 +21,13 @@ help:
 	@echo "  build-dsm-arm64   Cross-compile for Synology arm64 (DS220j, DS418, etc.)"
 	@echo "  spk-amd64         Build a .spk package for x86_64"
 	@echo "  spk-arm64         Build a .spk package for armv8"
+	@echo "  deploy            Build for amd64 and SCP binary to NAS (NAS_HOST=$(NAS_HOST))"
+	@echo "  deploy-restart    deploy + restart the service on the NAS"
 	@echo "  clean             Remove build/ and ui/node_modules"
 
 ui:
 	cd ui && npm install && npm run build
+	touch internal/webui/static/.gitkeep
 
 build: ui
 	@mkdir -p $(BUILD_DIR)
@@ -54,6 +60,20 @@ build-dsm-amd64: ui
 build-dsm-arm64: ui
 	@mkdir -p $(BUILD_DIR)
 	GOOS=linux GOARCH=arm64 go build -o $(BUILD_DIR)/$(BINARY)-linux-arm64 $(CMD)
+
+# Deploy to NAS without restarting the service.
+# Uploads to a temp file then renames atomically so the running binary isn't disturbed.
+# Override the host: make deploy NAS_HOST=user@192.168.1.x
+deploy: build-dsm-amd64
+	scp -O $(BUILD_DIR)/$(BINARY)-linux-amd64 $(NAS_HOST):$(NAS_BIN).new
+	ssh $(NAS_HOST) "mv $(NAS_BIN).new $(NAS_BIN)"
+	@echo "Deployed to $(NAS_HOST):$(NAS_BIN)"
+
+# Stop the service, deploy, then start it again.
+deploy-restart: build-dsm-amd64
+	ssh $(NAS_HOST) "/var/packages/cardimportd/scripts/start-stop-status stop"
+	scp -O $(BUILD_DIR)/$(BINARY)-linux-amd64 $(NAS_HOST):$(NAS_BIN)
+	ssh $(NAS_HOST) "/var/packages/cardimportd/scripts/start-stop-status start"
 
 clean:
 	rm -rf $(BUILD_DIR)
