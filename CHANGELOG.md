@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.13.12](https://github.com/jmsnll/cardimportd/compare/v0.13.11...v0.13.12) (2026-06-02)
+
+
+### Bug Fixes
+
+* **ci:** output spk job binary to build/ so make _spk finds it ([7506cbe](https://github.com/jmsnll/cardimportd/commit/7506cbe167d5dd250b3c3eaf55a18cd8af498355))
+
 ## [0.13.11](https://github.com/jmsnll/cardimportd/compare/v0.13.10...v0.13.11) (2026-06-02)
 
 
