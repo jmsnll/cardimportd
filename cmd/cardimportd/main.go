@@ -96,10 +96,35 @@ func main() {
 
 	bus := webui.NewEventBus(32)
 
+	// activeMounts tracks cards currently mounted, keyed by UUID. It is updated
+	// by handleMount after UUID resolution and cleaned up on Unmounted events.
+	// setCfg consults it to trigger imports when a pending card is activated.
+	var activeMounts sync.Map // map[string]watcher.MountEvent
+
 	w := watcher.New(*procMounts, *pollInterval, cfg.WatchPaths...)
 
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
+
+	// Wrap setCfg so that activating a pending card while it is still mounted
+	// immediately starts the import without requiring a restart or re-insertion.
+	origSetCfg := setCfg
+	setCfg = func(newCfg *config.Config) {
+		old := getCfg()
+		origSetCfg(newCfg)
+		for uuid, newEntry := range newCfg.Cards {
+			if newEntry.Status != config.StatusActive {
+				continue
+			}
+			if oldEntry, existed := old.Cards[uuid]; existed && oldEntry.Status != config.StatusPending {
+				continue
+			}
+			if v, ok := activeMounts.Load(uuid); ok {
+				slog.Info("card activated while mounted, triggering import", slog.String("uuid", uuid))
+				go handleMount(ctx, getCfg, notifier, setCfg, bus, v.(watcher.MountEvent), *cfgPath, &activeMounts)
+			}
+		}
+	}
 
 	if *webuiPort > 0 {
 		acc := webui.ConfigAccessor{
@@ -145,10 +170,18 @@ func main() {
 			}
 
 		case evt := <-w.Events():
-			if evt.Action != watcher.Mounted {
-				continue
+			switch evt.Action {
+			case watcher.Unmounted:
+				activeMounts.Range(func(k, v any) bool {
+					if v.(watcher.MountEvent).Device == evt.Device {
+						activeMounts.Delete(k)
+						return false
+					}
+					return true
+				})
+			case watcher.Mounted:
+				go handleMount(ctx, getCfg, notifier, setCfg, bus, evt, *cfgPath, &activeMounts)
 			}
-			go handleMount(ctx, getCfg, notifier, setCfg, bus, evt, *cfgPath)
 		}
 	}
 }
@@ -161,6 +194,7 @@ func handleMount(
 	bus *webui.EventBus,
 	evt watcher.MountEvent,
 	cfgPath string,
+	activeMounts *sync.Map,
 ) {
 	cfg := getCfg()
 	slog.Info("mount detected", "mount_point", evt.MountPoint, "device", evt.Device)
@@ -170,6 +204,7 @@ func handleMount(
 		slog.Warn("could not determine card UUID", "device", evt.Device, "error", err)
 		return
 	}
+	activeMounts.Store(uuid, evt)
 
 	slog.Info("card identified", "uuid", uuid, "mount_point", evt.MountPoint)
 
