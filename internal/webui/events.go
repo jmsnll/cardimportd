@@ -8,10 +8,12 @@ import (
 type ProgressEventKind string
 
 const (
-	ProgressKindStarted   ProgressEventKind = "import_started"
-	ProgressKindProgress  ProgressEventKind = "import_progress"
-	ProgressKindCompleted ProgressEventKind = "import_completed"
-	ProgressKindFailed    ProgressEventKind = "import_failed"
+	ProgressKindStarted     ProgressEventKind = "import_started"
+	ProgressKindProgress    ProgressEventKind = "import_progress"
+	ProgressKindCompleted   ProgressEventKind = "import_completed"
+	ProgressKindFailed      ProgressEventKind = "import_failed"
+	ProgressKindCardDetected ProgressEventKind = "card_detected"
+	ProgressKindCardRemoved  ProgressEventKind = "card_removed"
 )
 
 type ProgressEvent struct {
@@ -24,6 +26,8 @@ type ProgressEvent struct {
 	Failed      int               `json:"failed"`
 	BytesCopied int64             `json:"bytes_copied"`
 	Error       string            `json:"error,omitempty"`
+	MountPoint  string            `json:"mount_point,omitempty"`
+	FSType      string            `json:"fstype,omitempty"`
 }
 
 func (e ProgressEvent) Marshal() ([]byte, error) { return json.Marshal(e) }
