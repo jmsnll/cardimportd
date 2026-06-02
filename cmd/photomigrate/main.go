@@ -7,7 +7,7 @@
 //
 // Usage:
 //
-//	photomigrate -src /old/library -dst /new/library [-dry-run] [-verbose] [-ext .jpg,.raf,...]
+//	photomigrate -src /old/library -dst /new/library [-dry-run] [-verbose] [-workers N] [-ext .jpg,.raf,...]
 package main
 
 import (
@@ -19,7 +19,10 @@ import (
 	"log/slog"
 	"os"
 	"path/filepath"
+	"runtime"
 	"strings"
+	"sync"
+	"sync/atomic"
 
 	"github.com/jmsnll/cardimportd/internal/importer"
 	"github.com/jmsnll/cardimportd/internal/meta"
@@ -45,6 +48,7 @@ func main() {
 	dst     := flag.String("dst", "", "destination root; files land at {dst}/YYYY/MM/DD/ (required)")
 	dryRun  := flag.Bool("dry-run", false, "print planned operations without executing")
 	verbose := flag.Bool("verbose", false, "print each file operation even when not in dry-run")
+	workers := flag.Int("workers", runtime.NumCPU(), "number of parallel copy workers")
 	extFlag := flag.String("ext", "", "comma-separated extensions to include (default: same set as cardimportd)")
 	flag.Parse()
 
@@ -54,7 +58,6 @@ func main() {
 		os.Exit(1)
 	}
 
-	// Guard against src and dst being the same path or one containing the other.
 	srcReal := realPath(*src)
 	dstReal := realPath(*dst)
 	sep := string(os.PathSeparator)
@@ -70,8 +73,83 @@ func main() {
 
 	exts := buildExtSet(*extFlag)
 
-	var total, moved, skipped, failed int
-	var bytesMoved int64
+	var (
+		total      atomic.Int64
+		moved      atomic.Int64
+		skipped    atomic.Int64
+		failed     atomic.Int64
+		bytesMoved atomic.Int64
+	)
+
+	work := make(chan string, *workers*4)
+
+	var wg sync.WaitGroup
+	for range *workers {
+		wg.Go(func() {
+			for path := range work {
+				m := meta.Extract(path)
+				dstDir := filepath.Join(*dst,
+					m.DateTimeOriginal.Format("2006"),
+					m.DateTimeOriginal.Format("01"),
+					m.DateTimeOriginal.Format("02"),
+				)
+				naiveDst := filepath.Join(dstDir, filepath.Base(path))
+
+				op, finalDst, err := resolveAction(path, naiveDst)
+				if err != nil {
+					slog.Error("could not resolve destination", "src", path, "error", err)
+					failed.Add(1)
+					continue
+				}
+
+				if *dryRun || *verbose {
+					switch op {
+					case actionSkip:
+						fmt.Printf("SKIP  %s\n      (already at %s)\n", path, finalDst)
+					case actionRename:
+						fmt.Printf("MOVE  %s\n   -> %s  (renamed to avoid collision)\n", path, finalDst)
+					default:
+						fmt.Printf("MOVE  %s\n   -> %s\n", path, finalDst)
+					}
+				}
+
+				if *dryRun {
+					if op == actionSkip {
+						skipped.Add(1)
+					} else {
+						moved.Add(1)
+					}
+					continue
+				}
+
+				switch op {
+				case actionSkip:
+					if err := os.Remove(path); err != nil {
+						slog.Warn("remove source failed (already at dst)", "src", path, "error", err)
+					}
+					skipped.Add(1)
+
+				default:
+					if err := os.MkdirAll(filepath.Dir(finalDst), 0o755); err != nil {
+						slog.Error("mkdir failed", "dir", filepath.Dir(finalDst), "error", err)
+						failed.Add(1)
+						continue
+					}
+					n, _, copyErr := importer.CopyVerified(path, finalDst)
+					if copyErr != nil {
+						slog.Error("copy failed", "src", path, "dst", finalDst, "error", copyErr)
+						failed.Add(1)
+						continue
+					}
+					if err := os.Remove(path); err != nil {
+						slog.Warn("remove source failed after copy", "src", path, "error", err)
+					}
+					moved.Add(1)
+					bytesMoved.Add(n)
+				}
+			}
+		})
+	}
 
 	err := filepath.WalkDir(*src, func(path string, d os.DirEntry, walkErr error) error {
 		if walkErr != nil {
@@ -84,72 +162,13 @@ func main() {
 		if !exts[strings.ToLower(filepath.Ext(path))] {
 			return nil
 		}
-
-		total++
-
-		m := meta.Extract(path)
-		dstDir := filepath.Join(*dst,
-			m.DateTimeOriginal.Format("2006"),
-			m.DateTimeOriginal.Format("01"),
-			m.DateTimeOriginal.Format("02"),
-		)
-		naiveDst := filepath.Join(dstDir, filepath.Base(path))
-
-		op, finalDst, err := resolveAction(path, naiveDst)
-		if err != nil {
-			slog.Error("could not resolve destination", "src", path, "error", err)
-			failed++
-			return nil
-		}
-
-		if *dryRun || *verbose {
-			switch op {
-			case actionSkip:
-				fmt.Printf("SKIP  %s\n      (already at %s)\n", path, finalDst)
-			case actionRename:
-				fmt.Printf("MOVE  %s\n   -> %s  (renamed to avoid collision)\n", path, finalDst)
-			default:
-				fmt.Printf("MOVE  %s\n   -> %s\n", path, finalDst)
-			}
-		}
-
-		if *dryRun {
-			if op == actionSkip {
-				skipped++
-			} else {
-				moved++
-			}
-			return nil
-		}
-
-		switch op {
-		case actionSkip:
-			// Destination already holds an identical file; source can be removed.
-			if err := os.Remove(path); err != nil {
-				slog.Warn("remove source failed (already at dst)", "src", path, "error", err)
-			}
-			skipped++
-
-		default:
-			if err := os.MkdirAll(filepath.Dir(finalDst), 0o755); err != nil {
-				slog.Error("mkdir failed", "dir", filepath.Dir(finalDst), "error", err)
-				failed++
-				return nil
-			}
-			n, _, copyErr := importer.CopyVerified(path, finalDst)
-			if copyErr != nil {
-				slog.Error("copy failed", "src", path, "dst", finalDst, "error", copyErr)
-				failed++
-				return nil
-			}
-			if err := os.Remove(path); err != nil {
-				slog.Warn("remove source failed after copy", "src", path, "error", err)
-			}
-			moved++
-			bytesMoved += n
-		}
+		total.Add(1)
+		work <- path
 		return nil
 	})
+
+	close(work)
+	wg.Wait()
 
 	if err != nil {
 		slog.Error("directory walk failed", "error", err)
@@ -157,7 +176,7 @@ func main() {
 	}
 
 	fmt.Printf("\ntotal=%d  moved=%d  skipped=%d  failed=%d  bytes=%d\n",
-		total, moved, skipped, failed, bytesMoved)
+		total.Load(), moved.Load(), skipped.Load(), failed.Load(), bytesMoved.Load())
 	if *dryRun {
 		fmt.Println("(dry-run: no files were modified)")
 	}
@@ -210,7 +229,6 @@ func resolveAction(srcPath, dstPath string) (action, string, error) {
 	return 0, "", fmt.Errorf("could not find unique destination for %q after 998 attempts", filepath.Base(dstPath))
 }
 
-// sameContent reports whether a and b have identical SHA-256 digests.
 func sameContent(a, b string) (bool, error) {
 	ha, err := hashFile(a)
 	if err != nil {
@@ -236,8 +254,6 @@ func hashFile(path string) (string, error) {
 	return fmt.Sprintf("%x", h.Sum(nil)), nil
 }
 
-// realPath returns the absolute, symlink-resolved path, falling back to the
-// absolute path if EvalSymlinks fails (e.g. path does not yet exist).
 func realPath(p string) string {
 	abs, err := filepath.Abs(p)
 	if err != nil {
@@ -253,7 +269,7 @@ func realPath(p string) string {
 func buildExtSet(extFlag string) map[string]bool {
 	m := make(map[string]bool)
 	if extFlag != "" {
-		for _, e := range strings.Split(extFlag, ",") {
+		for e := range strings.SplitSeq(extFlag, ",") {
 			e = strings.TrimSpace(e)
 			if e != "" {
 				m[strings.ToLower(e)] = true
