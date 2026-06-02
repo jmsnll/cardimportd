@@ -1,5 +1,15 @@
 # Changelog
 
+## [0.13.9](https://github.com/jmsnll/cardimportd/compare/v0.13.8...v0.13.9) (2026-06-02)
+
+
+### Features
+
+* trigger import immediately when pending card is activated ([0031cea](https://github.com/jmsnll/cardimportd/commit/0031ceabd00bee186f07700bd6204ce24a7cc231))
+* **ui/cards:** refresh button, mounted badge, last import, preflight scan ([e9305db](https://github.com/jmsnll/cardimportd/commit/e9305dbadad4eb57d0bc18014eadb76ec61b609b))
+* **ui:** add History tab, ImportProgress component, SSE reconnect resync ([b9a88ef](https://github.com/jmsnll/cardimportd/commit/b9a88ef6126e12d65ca08dc39e3a9adc51c74c94))
+* **webui:** add history, status, preflight endpoints + card lifecycle SSE events ([29eede2](https://github.com/jmsnll/cardimportd/commit/29eede2e2c8426a6dffe7ab07a696dcd357f60c5))
+
 ## [0.13.8](https://github.com/jmsnll/cardimportd/compare/v0.13.7...v0.13.8) (2026-06-02)
 
 
