@@ -1,4 +1,4 @@
-import type { Config, CardEntry, CardStatus } from './types'
+import type { Config, CardEntry, CardStatus, HistoryEntry, StatusResponse, PreflightResult } from './types'
 
 async function apiFetch<T>(path: string, opts?: RequestInit): Promise<T> {
   const res = await fetch(path, {
@@ -47,4 +47,16 @@ export function testNotification(adapter?: string): Promise<{ ok: boolean }> {
 
 export function browseFSDir(path: string): Promise<{ path: string; entries: string[] }> {
   return apiFetch(`/api/fs?path=${encodeURIComponent(path)}`)
+}
+
+export function getHistory(limit = 50): Promise<HistoryEntry[]> {
+  return apiFetch<HistoryEntry[]>(`/api/history?limit=${limit}`)
+}
+
+export function getStatus(): Promise<StatusResponse> {
+  return apiFetch<StatusResponse>('/api/status')
+}
+
+export function getPreflight(uuid: string): Promise<PreflightResult> {
+  return apiFetch<PreflightResult>(`/api/preflight/${encodeURIComponent(uuid)}`)
 }
