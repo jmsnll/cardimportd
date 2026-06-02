@@ -2,7 +2,7 @@
   "packages": [
     {
       "package": "cardimportd",
-      "version": "0.13.6-0001",
+      "version": "0.13.7-0001",
       "dname": "Card Importer",
       "desc": "Watches for SD/CFExpress card insertions and imports photos/videos.",
       "distributor": "jmsnll",
@@ -10,11 +10,11 @@
       "qupgrade": true,
       "qstart": true,
       "arch": "x86_64",
-      "link": "https://jmsnll.github.io/cardimportd/cardimportd-0.13.6-0001-x86_64.spk"
+      "link": "https://jmsnll.github.io/cardimportd/cardimportd-0.13.7-0001-x86_64.spk"
     },
     {
       "package": "cardimportd",
-      "version": "0.13.6-0001",
+      "version": "0.13.7-0001",
       "dname": "Card Importer",
       "desc": "Watches for SD/CFExpress card insertions and imports photos/videos.",
       "distributor": "jmsnll",
@@ -22,7 +22,7 @@
       "qupgrade": true,
       "qstart": true,
       "arch": "armv8",
-      "link": "https://jmsnll.github.io/cardimportd/cardimportd-0.13.6-0001-armv8.spk"
+      "link": "https://jmsnll.github.io/cardimportd/cardimportd-0.13.7-0001-armv8.spk"
     }
   ]
 }
