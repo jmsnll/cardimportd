@@ -42,7 +42,18 @@ var defaultExts = []string{
 	".heic", ".heif",
 	".mp4", ".mov", ".mxf",
 	".wav", ".aif",
-	".xmp",
+}
+
+// findXMPSidecar returns the path of the XMP sidecar for rawPath if one exists
+// in the same directory (checks both .xmp and .XMP), or empty string otherwise.
+func findXMPSidecar(rawPath string) string {
+	stem := strings.TrimSuffix(rawPath, filepath.Ext(rawPath))
+	for _, e := range []string{".xmp", ".XMP"} {
+		if _, err := os.Stat(stem + e); err == nil {
+			return stem + e
+		}
+	}
+	return ""
 }
 
 func main() {
@@ -184,6 +195,23 @@ func main() {
 					continue
 				}
 
+				// Resolve XMP sidecar destination upfront using the same dstDir,
+				// before the raw is moved, so the source file still exists.
+				sidecar := findXMPSidecar(path)
+				var sidecarOp action
+				var finalSidecarDst string
+				if sidecar != "" {
+					naiveSidecarDst := filepath.Join(dstDir, filepath.Base(sidecar))
+					resolveMu.Lock()
+					var sidecarErr error
+					sidecarOp, finalSidecarDst, sidecarErr = resolveAction(sidecar, naiveSidecarDst)
+					resolveMu.Unlock()
+					if sidecarErr != nil {
+						logger.Warn("could not resolve sidecar destination", "src", sidecar, "error", sidecarErr)
+						sidecar = ""
+					}
+				}
+
 				if *verbose {
 					switch op {
 					case actionSkip:
@@ -193,6 +221,13 @@ func main() {
 					default:
 						logger.Debug("move", "src", path, "dst", finalDst)
 					}
+					if sidecar != "" {
+						if sidecarOp == actionSkip {
+							logger.Debug("skip sidecar", "src", sidecar, "dst", finalSidecarDst)
+						} else {
+							logger.Debug("move sidecar", "src", sidecar, "dst", finalSidecarDst)
+						}
+					}
 				}
 
 				if *dryRun {
@@ -201,16 +236,25 @@ func main() {
 					} else {
 						moved.Add(1)
 					}
+					if sidecar != "" {
+						if sidecarOp == actionSkip {
+							skipped.Add(1)
+						} else {
+							moved.Add(1)
+						}
+					}
 					processed.Add(1)
 					continue
 				}
 
+				primaryOK := false
 				switch op {
 				case actionSkip:
 					if err := os.Remove(path); err != nil {
 						logger.Warn("remove source failed", "src", path, "error", err)
 					}
 					skipped.Add(1)
+					primaryOK = true
 
 				default:
 					if err := os.MkdirAll(filepath.Dir(finalDst), 0o755); err != nil {
@@ -231,6 +275,34 @@ func main() {
 					}
 					moved.Add(1)
 					bytesMoved.Add(n)
+					primaryOK = true
+				}
+
+				if primaryOK && sidecar != "" {
+					switch sidecarOp {
+					case actionSkip:
+						if err := os.Remove(sidecar); err != nil {
+							logger.Warn("remove sidecar source failed", "src", sidecar, "error", err)
+						}
+						skipped.Add(1)
+					default:
+						if err := os.MkdirAll(filepath.Dir(finalSidecarDst), 0o755); err != nil {
+							logger.Error("mkdir failed for sidecar", "dir", filepath.Dir(finalSidecarDst), "error", err)
+							failed.Add(1)
+						} else {
+							n, _, copyErr := importer.CopyVerified(sidecar, finalSidecarDst)
+							if copyErr != nil {
+								logger.Error("copy sidecar failed", "src", sidecar, "dst", finalSidecarDst, "error", copyErr)
+								failed.Add(1)
+							} else {
+								if err := os.Remove(sidecar); err != nil {
+									logger.Warn("remove sidecar source failed after copy", "src", sidecar, "error", err)
+								}
+								moved.Add(1)
+								bytesMoved.Add(n)
+							}
+						}
+					}
 				}
 
 				processed.Add(1)
