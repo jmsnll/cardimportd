@@ -15,6 +15,7 @@ type importStamp struct {
 	CardUUID   string    `json:"card_uuid"`
 	Owner      string    `json:"owner"`
 	FileCount  int       `json:"file_count"`
+	RatedOnly  bool      `json:"rated_only"`
 }
 
 func readStamp(mountPath string) (importStamp, bool) {
@@ -29,12 +30,13 @@ func readStamp(mountPath string) (importStamp, bool) {
 	return s, true
 }
 
-func writeStamp(mountPath, cardUUID, owner string, fileCount int) error {
+func writeStamp(mountPath, cardUUID, owner string, fileCount int, ratedOnly bool) error {
 	s := importStamp{
 		ImportedAt: time.Now().UTC(),
 		CardUUID:   cardUUID,
 		Owner:      owner,
 		FileCount:  fileCount,
+		RatedOnly:  ratedOnly,
 	}
 	data, err := json.Marshal(s)
 	if err != nil {
