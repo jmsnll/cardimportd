@@ -3,13 +3,13 @@ ETC=/var/packages/cardimportd/etc
 VAR=/var/packages/cardimportd/var
 PIDFILE=$VAR/cardimportd.pid
 
-echo "$(date -Iseconds) upgraded cardimportd" >> "$VAR/cardimportd.log"
+printf '{"time":"%s","level":"INFO","msg":"upgraded cardimportd"}\n' "$(date -Iseconds)" >> "$VAR/cardimportd.log"
 
 # Config lives in ETC which DSM preserves — nothing to migrate.
 # Signal a running daemon to reload (no-op if not running).
 if [ -f "$PIDFILE" ] && kill -0 "$(cat $PIDFILE)" 2>/dev/null; then
     pkill -HUP -P "$(cat $PIDFILE)" 2>/dev/null || true
-    echo "$(date -Iseconds) sent SIGHUP to reload config" >> "$VAR/cardimportd.log"
+    printf '{"time":"%s","level":"INFO","msg":"sent SIGHUP to reload config"}\n' "$(date -Iseconds)" >> "$VAR/cardimportd.log"
 fi
 
 exit 0

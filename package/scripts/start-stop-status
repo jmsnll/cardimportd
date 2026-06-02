@@ -18,7 +18,7 @@ start_daemon() {
             "$DAEMON" --config "$CONFIG" >> "$LOG" 2>&1
             code=$?
             [ -f "$STOPPING_FILE" ] && break
-            echo "$(date -Iseconds) cardimportd exited (code $code), restarting in 5s..." >> "$LOG"
+            printf '{"time":"%s","level":"WARN","msg":"cardimportd exited, restarting in 5s","code":%s}\n' "$(date -Iseconds)" "$code" >> "$LOG"
             sleep 5
         done
     ) &
