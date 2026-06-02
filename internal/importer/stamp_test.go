@@ -17,7 +17,7 @@ func TestReadStamp_NotFound(t *testing.T) {
 
 func TestWriteReadStamp_RoundTrip(t *testing.T) {
 	dir := t.TempDir()
-	if err := writeStamp(dir, "TEST-UUID", "James", 42); err != nil {
+	if err := writeStamp(dir, "TEST-UUID", "James", 42, false); err != nil {
 		t.Fatalf("writeStamp: %v", err)
 	}
 	s, ok := readStamp(dir)
@@ -102,6 +102,25 @@ func TestAlreadyImported_CountChanged(t *testing.T) {
 
 	if imp.AlreadyImported(cardDir) {
 		t.Error("AlreadyImported should be false when file count changed")
+	}
+}
+
+func TestAlreadyImported_RatedOnlyMismatch(t *testing.T) {
+	cardDir := t.TempDir()
+	makeFile(t, cardDir, "a.jpg", randomBytes(t, 256))
+
+	// Stamp written with ratedOnly=false.
+	if err := writeStamp(cardDir, "UUID", "James", 1, false); err != nil {
+		t.Fatalf("writeStamp: %v", err)
+	}
+
+	// Importer configured with RatedOnly=true — stamp is stale.
+	cfg := makeConfig(t.TempDir())
+	cfg.RatedOnly = true
+	imp := New(cfg, &discardNotifier{})
+
+	if imp.AlreadyImported(cardDir) {
+		t.Error("AlreadyImported should be false when rated_only config changed")
 	}
 }
 

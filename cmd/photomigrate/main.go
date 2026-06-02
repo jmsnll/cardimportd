@@ -11,8 +11,11 @@
 package main
 
 import (
+	"crypto/sha256"
+	"errors"
 	"flag"
 	"fmt"
+	"io"
 	"log/slog"
 	"os"
 	"path/filepath"
@@ -48,6 +51,17 @@ func main() {
 	if *src == "" || *dst == "" {
 		fmt.Fprintln(os.Stderr, "photomigrate: -src and -dst are required")
 		flag.Usage()
+		os.Exit(1)
+	}
+
+	// Guard against src and dst being the same path or one containing the other.
+	srcReal := realPath(*src)
+	dstReal := realPath(*dst)
+	sep := string(os.PathSeparator)
+	if srcReal == dstReal ||
+		strings.HasPrefix(dstReal, srcReal+sep) ||
+		strings.HasPrefix(srcReal, dstReal+sep) {
+		fmt.Fprintln(os.Stderr, "photomigrate: -src and -dst must not overlap")
 		os.Exit(1)
 	}
 
@@ -110,7 +124,7 @@ func main() {
 
 		switch op {
 		case actionSkip:
-			// Destination already holds a same-size file; source can be removed.
+			// Destination already holds an identical file; source can be removed.
 			if err := os.Remove(path); err != nil {
 				slog.Warn("remove source failed (already at dst)", "src", path, "error", err)
 			}
@@ -159,8 +173,8 @@ const (
 
 // resolveAction decides what to do with a source file given its naive destination.
 // - actionCreate  destination does not exist
-// - actionSkip    destination exists with same file size (already migrated)
-// - actionRename  destination exists with different size (collision); finalDst is a unique path
+// - actionSkip    destination exists with identical content (SHA-256 + size match)
+// - actionRename  destination exists but content differs; finalDst is a unique path
 func resolveAction(srcPath, dstPath string) (action, string, error) {
 	srcInfo, err := os.Stat(srcPath)
 	if err != nil {
@@ -168,7 +182,7 @@ func resolveAction(srcPath, dstPath string) (action, string, error) {
 	}
 
 	dstInfo, err := os.Stat(dstPath)
-	if os.IsNotExist(err) {
+	if errors.Is(err, os.ErrNotExist) {
 		return actionCreate, dstPath, nil
 	}
 	if err != nil {
@@ -176,18 +190,64 @@ func resolveAction(srcPath, dstPath string) (action, string, error) {
 	}
 
 	if srcInfo.Size() == dstInfo.Size() {
-		return actionSkip, dstPath, nil
+		same, err := sameContent(srcPath, dstPath)
+		if err != nil {
+			return 0, "", fmt.Errorf("content compare: %w", err)
+		}
+		if same {
+			return actionSkip, dstPath, nil
+		}
 	}
 
 	ext  := filepath.Ext(dstPath)
 	stem := strings.TrimSuffix(dstPath, ext)
 	for i := 2; i <= 999; i++ {
 		candidate := fmt.Sprintf("%s_%d%s", stem, i, ext)
-		if _, err := os.Stat(candidate); os.IsNotExist(err) {
+		if _, err := os.Stat(candidate); errors.Is(err, os.ErrNotExist) {
 			return actionRename, candidate, nil
 		}
 	}
 	return 0, "", fmt.Errorf("could not find unique destination for %q after 998 attempts", filepath.Base(dstPath))
+}
+
+// sameContent reports whether a and b have identical SHA-256 digests.
+func sameContent(a, b string) (bool, error) {
+	ha, err := hashFile(a)
+	if err != nil {
+		return false, err
+	}
+	hb, err := hashFile(b)
+	if err != nil {
+		return false, err
+	}
+	return ha == hb, nil
+}
+
+func hashFile(path string) (string, error) {
+	f, err := os.Open(path)
+	if err != nil {
+		return "", err
+	}
+	defer func() { _ = f.Close() }()
+	h := sha256.New()
+	if _, err := io.Copy(h, f); err != nil {
+		return "", err
+	}
+	return fmt.Sprintf("%x", h.Sum(nil)), nil
+}
+
+// realPath returns the absolute, symlink-resolved path, falling back to the
+// absolute path if EvalSymlinks fails (e.g. path does not yet exist).
+func realPath(p string) string {
+	abs, err := filepath.Abs(p)
+	if err != nil {
+		return p
+	}
+	real, err := filepath.EvalSymlinks(abs)
+	if err != nil {
+		return abs
+	}
+	return real
 }
 
 func buildExtSet(extFlag string) map[string]bool {

@@ -283,6 +283,14 @@ func handleMount(
 		return
 	}
 
+	if importMu != nil {
+		if !importMu.TryLock() {
+			slog.Warn("import already in progress, skipping auto-trigger", "uuid", uuid)
+			return
+		}
+		defer importMu.Unlock()
+	}
+
 	imp := importer.New(getCfg(), n)
 
 	if !forceReimport && imp.AlreadyImported(evt.MountPoint) {
@@ -300,14 +308,6 @@ func handleMount(
 		Time:      time.Now(),
 	}); err != nil {
 		slog.Warn("notify: delivery failed", "kind", string(notify.KindImportStarted), "error", err)
-	}
-
-	if importMu != nil {
-		if !importMu.TryLock() {
-			slog.Warn("import already in progress, skipping auto-trigger", "uuid", uuid)
-			return
-		}
-		defer importMu.Unlock()
 	}
 
 	bus.Publish(webui.ProgressEvent{Kind: webui.ProgressKindStarted, Owner: entry.Owner, CardUUID: uuid})

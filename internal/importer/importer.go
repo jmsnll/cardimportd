@@ -45,11 +45,14 @@ func (imp *Importer) SetProgressCallback(fn func(imported, skipped, failed int, 
 }
 
 // AlreadyImported returns true when a stamp file written by a previous clean
-// import exists on mountPath and the current file count matches it. It is
-// O(directory-listing) — fast enough to call before deciding to run an import.
+// import exists on mountPath, the rated_only setting matches the current config,
+// and the current file count matches the stamped count.
 func (imp *Importer) AlreadyImported(mountPath string) bool {
 	stamp, ok := readStamp(mountPath)
 	if !ok {
+		return false
+	}
+	if stamp.RatedOnly != imp.cfg.RatedOnly {
 		return false
 	}
 	ext := make(map[string]bool, len(imp.cfg.FileExtensions))
@@ -146,7 +149,7 @@ func (imp *Importer) Import(ctx context.Context, owner, mountPath, cardUUID stri
 	}
 
 	if err == nil && res.Failed == 0 {
-		if stampErr := writeStamp(mountPath, cardUUID, owner, res.Total); stampErr != nil {
+		if stampErr := writeStamp(mountPath, cardUUID, owner, res.Total, imp.cfg.RatedOnly); stampErr != nil {
 			slog.Warn("importer: failed to write stamp", "error", stampErr)
 		}
 	}

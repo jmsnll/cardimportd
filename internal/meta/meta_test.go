@@ -137,9 +137,10 @@ func buildMinimalJPEGWithEXIF(model, dto string) []byte {
 	copy(tiff[valAreaOff+len(modelBytes):], dtoBytes)
 
 	// Wrap TIFF in APP1 segment.
-	exifPfx := []byte("Exif")
-	exifPfx = append(exifPfx, 0x00, 0x00)
-	app1Body := append(exifPfx, tiff...)
+	exifPfx := []byte("Exif\x00\x00")
+	app1Body := make([]byte, 0, len(exifPfx)+len(tiff))
+	app1Body = append(app1Body, exifPfx...)
+	app1Body = append(app1Body, tiff...)
 	app1Len := uint16(len(app1Body) + 2)
 
 	var j bytes.Buffer
@@ -334,7 +335,9 @@ func buildMinimalJPEGWithRating(model, dto string, rating uint16) []byte {
 	copy(tiff[valAreaOff+len(modelBytes):], dtoBytes)
 
 	exifPfx := []byte("Exif\x00\x00")
-	app1Body := append(exifPfx, tiff...)
+	app1Body := make([]byte, 0, len(exifPfx)+len(tiff))
+	app1Body = append(app1Body, exifPfx...)
+	app1Body = append(app1Body, tiff...)
 	app1Len := uint16(len(app1Body) + 2)
 
 	var j bytes.Buffer

@@ -2,6 +2,7 @@ package importer
 
 import (
 	"encoding/json"
+	"log/slog"
 	"os"
 	"path/filepath"
 	"strings"
@@ -15,6 +16,7 @@ type importStamp struct {
 	CardUUID   string    `json:"card_uuid"`
 	Owner      string    `json:"owner"`
 	FileCount  int       `json:"file_count"`
+	RatedOnly  bool      `json:"rated_only"`
 }
 
 func readStamp(mountPath string) (importStamp, bool) {
@@ -29,12 +31,13 @@ func readStamp(mountPath string) (importStamp, bool) {
 	return s, true
 }
 
-func writeStamp(mountPath, cardUUID, owner string, fileCount int) error {
+func writeStamp(mountPath, cardUUID, owner string, fileCount int, ratedOnly bool) error {
 	s := importStamp{
 		ImportedAt: time.Now().UTC(),
 		CardUUID:   cardUUID,
 		Owner:      owner,
 		FileCount:  fileCount,
+		RatedOnly:  ratedOnly,
 	}
 	data, err := json.Marshal(s)
 	if err != nil {
@@ -47,7 +50,7 @@ func writeStamp(mountPath, cardUUID, owner string, fileCount int) error {
 // using the same logic as the Import walk so the count is always comparable.
 func countMatchingFiles(mountPath string, ext map[string]bool) int {
 	var n int
-	_ = filepath.WalkDir(mountPath, func(path string, d os.DirEntry, err error) error {
+	if err := filepath.WalkDir(mountPath, func(path string, d os.DirEntry, err error) error {
 		if err != nil || d.IsDir() {
 			return nil
 		}
@@ -58,6 +61,8 @@ func countMatchingFiles(mountPath string, ext map[string]bool) int {
 			n++
 		}
 		return nil
-	})
+	}); err != nil {
+		slog.Warn("importer: stamp walk error", "path", mountPath, "error", err)
+	}
 	return n
 }
