@@ -476,6 +476,159 @@ func (h *apiHandler) handlePreflight(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, preflightResult{UUID: uuid, OnCard: onCard, ToImport: onCard}, http.StatusOK)
 }
 
+// -- /api/users ---------------------------------------------------------------
+
+func (h *apiHandler) handleUsers(w http.ResponseWriter, r *http.Request) {
+	switch r.Method {
+	case http.MethodGet:
+		users := h.acc.Get().Users
+		if users == nil {
+			users = []config.User{}
+		}
+		writeJSON(w, users, http.StatusOK)
+	case http.MethodPost:
+		h.createUser(w, r)
+	default:
+		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
+	}
+}
+
+func (h *apiHandler) createUser(w http.ResponseWriter, r *http.Request) {
+	if !requireJSON(w, r) {
+		return
+	}
+	r.Body = http.MaxBytesReader(w, r.Body, 1<<20)
+	var req config.User
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		apiError(w, "invalid body: "+err.Error(), http.StatusBadRequest)
+		return
+	}
+	req.Name = strings.TrimSpace(req.Name)
+	if req.Name == "" {
+		apiError(w, "name is required", http.StatusBadRequest)
+		return
+	}
+	updated := copyConfig(h.acc.Get())
+	for _, u := range updated.Users {
+		if u.Name == req.Name {
+			apiError(w, "user already exists", http.StatusConflict)
+			return
+		}
+	}
+	updated.Users = append(updated.Users, req)
+	if err := updated.Save(h.acc.Path); err != nil {
+		apiError(w, "failed to save: "+err.Error(), http.StatusInternalServerError)
+		return
+	}
+	h.acc.Set(updated)
+	writeJSON(w, map[string]bool{"ok": true}, http.StatusOK)
+}
+
+// -- /api/users/{name} --------------------------------------------------------
+
+func (h *apiHandler) handleUser(w http.ResponseWriter, r *http.Request) {
+	name := strings.TrimPrefix(r.URL.Path, "/api/users/")
+	if name == "" {
+		apiError(w, "name is required", http.StatusBadRequest)
+		return
+	}
+	switch r.Method {
+	case http.MethodPut:
+		h.updateUser(w, r, name)
+	case http.MethodDelete:
+		h.deleteUser(w, r, name)
+	default:
+		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
+	}
+}
+
+func (h *apiHandler) updateUser(w http.ResponseWriter, r *http.Request, name string) {
+	if !requireJSON(w, r) {
+		return
+	}
+	r.Body = http.MaxBytesReader(w, r.Body, 1<<20)
+	var req struct {
+		Name                string `json:"name"`
+		DestinationTemplate string `json:"destination_template"`
+	}
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		apiError(w, "invalid body: "+err.Error(), http.StatusBadRequest)
+		return
+	}
+	updated := copyConfig(h.acc.Get())
+	found := false
+	for i, u := range updated.Users {
+		if u.Name != name {
+			continue
+		}
+		newName := strings.TrimSpace(req.Name)
+		if newName == "" {
+			newName = name
+		}
+		updated.Users[i].Name = newName
+		updated.Users[i].DestinationTemplate = req.DestinationTemplate
+		if newName != name {
+			for uuid, entry := range updated.Cards {
+				if entry.Owner == name {
+					entry.Owner = newName
+					updated.Cards[uuid] = entry
+				}
+			}
+		}
+		found = true
+		break
+	}
+	if !found {
+		apiError(w, "user not found", http.StatusNotFound)
+		return
+	}
+	if err := updated.Save(h.acc.Path); err != nil {
+		apiError(w, "failed to save: "+err.Error(), http.StatusInternalServerError)
+		return
+	}
+	h.acc.Set(updated)
+	writeJSON(w, map[string]bool{"ok": true}, http.StatusOK)
+}
+
+func (h *apiHandler) deleteUser(w http.ResponseWriter, r *http.Request, name string) {
+	current := h.acc.Get()
+	var blocked []string
+	for uuid, entry := range current.Cards {
+		if entry.Owner == name {
+			blocked = append(blocked, uuid)
+		}
+	}
+	if len(blocked) > 0 {
+		sort.Strings(blocked)
+		writeJSON(w, map[string]any{
+			"error": "user is referenced by cards; reassign or rename first",
+			"cards": blocked,
+		}, http.StatusConflict)
+		return
+	}
+	updated := copyConfig(current)
+	newUsers := updated.Users[:0]
+	found := false
+	for _, u := range updated.Users {
+		if u.Name == name {
+			found = true
+			continue
+		}
+		newUsers = append(newUsers, u)
+	}
+	if !found {
+		apiError(w, "user not found", http.StatusNotFound)
+		return
+	}
+	updated.Users = newUsers
+	if err := updated.Save(h.acc.Path); err != nil {
+		apiError(w, "failed to save: "+err.Error(), http.StatusInternalServerError)
+		return
+	}
+	h.acc.Set(updated)
+	writeJSON(w, map[string]bool{"ok": true}, http.StatusOK)
+}
+
 // -- helpers ------------------------------------------------------------------
 
 func copyConfig(src *config.Config) *config.Config {
@@ -486,6 +639,7 @@ func copyConfig(src *config.Config) *config.Config {
 	}
 	dst.WatchPaths = append([]string(nil), src.WatchPaths...)
 	dst.FileExtensions = append([]string(nil), src.FileExtensions...)
+	dst.Users = append([]config.User(nil), src.Users...)
 	dst.WebUI = src.WebUI
 	return &dst
 }

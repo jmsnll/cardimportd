@@ -61,6 +61,8 @@ func (s *Server) Start(ctx context.Context) error {
 	mux.HandleFunc("/api/history", api.handleHistory)
 	mux.HandleFunc("/api/status", api.handleStatus)
 	mux.HandleFunc("/api/preflight/", api.handlePreflight)
+	mux.HandleFunc("/api/users", api.handleUsers)
+	mux.HandleFunc("/api/users/", api.handleUser)
 
 	// Health endpoint — exempt from auth.
 	mux.HandleFunc("/healthz", api.handleHealth)

@@ -38,7 +38,8 @@ var defaultFileExtensions = []string{
 
 // User represents a named owner that can be assigned to cards.
 type User struct {
-	Name string `yaml:"name" json:"name"`
+	Name                string `yaml:"name"                           json:"name"`
+	DestinationTemplate string `yaml:"destination_template,omitempty" json:"destination_template,omitempty"`
 }
 
 // CardEntry holds the per-card configuration keyed by filesystem UUID.
