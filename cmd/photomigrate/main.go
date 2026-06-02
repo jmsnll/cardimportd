@@ -33,7 +33,7 @@ import (
 var defaultExts = []string{
 	".jpg", ".jpeg",
 	".raf",
-	".arw", ".lrf",
+	".arw",
 	".cr3", ".cr2",
 	".nef", ".nrw",
 	".dng",
@@ -44,16 +44,21 @@ var defaultExts = []string{
 	".wav", ".aif",
 }
 
-// findXMPSidecar returns the path of the XMP sidecar for rawPath if one exists
-// in the same directory (checks both .xmp and .XMP), or empty string otherwise.
-func findXMPSidecar(rawPath string) string {
+// sidecarExts are file extensions treated as sidecars: not queued as standalone
+// work items but moved alongside their companion raw file.
+var sidecarExts = []string{".xmp", ".XMP", ".lrf", ".LRF"}
+
+// findSidecars returns paths of all sidecar files for rawPath that exist in
+// the same directory.
+func findSidecars(rawPath string) []string {
 	stem := strings.TrimSuffix(rawPath, filepath.Ext(rawPath))
-	for _, e := range []string{".xmp", ".XMP"} {
+	var found []string
+	for _, e := range sidecarExts {
 		if _, err := os.Stat(stem + e); err == nil {
-			return stem + e
+			found = append(found, stem+e)
 		}
 	}
-	return ""
+	return found
 }
 
 func main() {
@@ -195,21 +200,24 @@ func main() {
 					continue
 				}
 
-				// Resolve XMP sidecar destination upfront using the same dstDir,
-				// before the raw is moved, so the source file still exists.
-				sidecar := findXMPSidecar(path)
-				var sidecarOp action
-				var finalSidecarDst string
-				if sidecar != "" {
-					naiveSidecarDst := filepath.Join(dstDir, filepath.Base(sidecar))
+				// Resolve sidecars upfront (before the raw is moved) so that
+				// source files are still present at their original paths.
+				type sidecarPlan struct {
+					src string
+					dst string
+					op  action
+				}
+				var sidecars []sidecarPlan
+				for _, sc := range findSidecars(path) {
+					naiveSCDst := filepath.Join(dstDir, filepath.Base(sc))
 					resolveMu.Lock()
-					var sidecarErr error
-					sidecarOp, finalSidecarDst, sidecarErr = resolveAction(sidecar, naiveSidecarDst)
+					scOp, scDst, scErr := resolveAction(sc, naiveSCDst)
 					resolveMu.Unlock()
-					if sidecarErr != nil {
-						logger.Warn("could not resolve sidecar destination", "src", sidecar, "error", sidecarErr)
-						sidecar = ""
+					if scErr != nil {
+						logger.Warn("could not resolve sidecar destination", "src", sc, "error", scErr)
+						continue
 					}
+					sidecars = append(sidecars, sidecarPlan{src: sc, dst: scDst, op: scOp})
 				}
 
 				if *verbose {
@@ -221,11 +229,11 @@ func main() {
 					default:
 						logger.Debug("move", "src", path, "dst", finalDst)
 					}
-					if sidecar != "" {
-						if sidecarOp == actionSkip {
-							logger.Debug("skip sidecar", "src", sidecar, "dst", finalSidecarDst)
+					for _, sc := range sidecars {
+						if sc.op == actionSkip {
+							logger.Debug("skip sidecar", "src", sc.src, "dst", sc.dst)
 						} else {
-							logger.Debug("move sidecar", "src", sidecar, "dst", finalSidecarDst)
+							logger.Debug("move sidecar", "src", sc.src, "dst", sc.dst)
 						}
 					}
 				}
@@ -236,8 +244,8 @@ func main() {
 					} else {
 						moved.Add(1)
 					}
-					if sidecar != "" {
-						if sidecarOp == actionSkip {
+					for _, sc := range sidecars {
+						if sc.op == actionSkip {
 							skipped.Add(1)
 						} else {
 							moved.Add(1)
@@ -278,29 +286,31 @@ func main() {
 					primaryOK = true
 				}
 
-				if primaryOK && sidecar != "" {
-					switch sidecarOp {
-					case actionSkip:
-						if err := os.Remove(sidecar); err != nil {
-							logger.Warn("remove sidecar source failed", "src", sidecar, "error", err)
-						}
-						skipped.Add(1)
-					default:
-						if err := os.MkdirAll(filepath.Dir(finalSidecarDst), 0o755); err != nil {
-							logger.Error("mkdir failed for sidecar", "dir", filepath.Dir(finalSidecarDst), "error", err)
-							failed.Add(1)
-						} else {
-							n, _, copyErr := importer.CopyVerified(sidecar, finalSidecarDst)
-							if copyErr != nil {
-								logger.Error("copy sidecar failed", "src", sidecar, "dst", finalSidecarDst, "error", copyErr)
-								failed.Add(1)
-							} else {
-								if err := os.Remove(sidecar); err != nil {
-									logger.Warn("remove sidecar source failed after copy", "src", sidecar, "error", err)
-								}
-								moved.Add(1)
-								bytesMoved.Add(n)
+				if primaryOK {
+					for _, sc := range sidecars {
+						switch sc.op {
+						case actionSkip:
+							if err := os.Remove(sc.src); err != nil {
+								logger.Warn("remove sidecar source failed", "src", sc.src, "error", err)
 							}
+							skipped.Add(1)
+						default:
+							if err := os.MkdirAll(filepath.Dir(sc.dst), 0o755); err != nil {
+								logger.Error("mkdir failed for sidecar", "dir", filepath.Dir(sc.dst), "error", err)
+								failed.Add(1)
+								continue
+							}
+							n, _, copyErr := importer.CopyVerified(sc.src, sc.dst)
+							if copyErr != nil {
+								logger.Error("copy sidecar failed", "src", sc.src, "dst", sc.dst, "error", copyErr)
+								failed.Add(1)
+								continue
+							}
+							if err := os.Remove(sc.src); err != nil {
+								logger.Warn("remove sidecar source failed after copy", "src", sc.src, "error", err)
+							}
+							moved.Add(1)
+							bytesMoved.Add(n)
 						}
 					}
 				}
