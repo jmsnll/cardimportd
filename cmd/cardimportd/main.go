@@ -288,13 +288,34 @@ func checkBlkid() {
 }
 
 func cardUUID(device string) (string, error) {
-	out, err := exec.Command("blkid", "-s", "UUID", "-o", "value", device).Output()
+	// UUID covers most cards. exFAT SD cards formatted by cameras sometimes
+	// have a zero Volume Serial Number, which makes blkid return empty even
+	// on success. Fall back to PARTUUID (GPT disks) then LABEL before giving up.
+	for _, field := range []string{"UUID", "PARTUUID", "LABEL"} {
+		v, ok := blkidField(device, field)
+		if !ok {
+			continue
+		}
+		if field != "UUID" {
+			slog.Warn("cardUUID: UUID unavailable, using fallback identifier",
+				slog.String("device", device),
+				slog.String("field", field),
+				slog.String("value", v),
+			)
+		}
+		if field == "LABEL" {
+			return "label:" + v, nil
+		}
+		return v, nil
+	}
+	return "", fmt.Errorf("blkid: no usable identifier (UUID, PARTUUID, or LABEL) found for %s", device)
+}
+
+func blkidField(device, field string) (string, bool) {
+	out, err := exec.Command("blkid", "-s", field, "-o", "value", device).Output()
 	if err != nil {
-		return "", fmt.Errorf("blkid %s: %w", device, err)
+		return "", false
 	}
-	uuid := strings.TrimSpace(string(out))
-	if uuid == "" {
-		return "", fmt.Errorf("blkid returned empty UUID for %s", device)
-	}
-	return uuid, nil
+	v := strings.TrimSpace(string(out))
+	return v, v != ""
 }

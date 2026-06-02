@@ -60,15 +60,21 @@ func startWatcher(t *testing.T, w *Watcher) context.CancelFunc {
 
 func waitForTick() { time.Sleep(5 * testInterval) }
 
-func TestInitialSnapshotDoesNotEmitEvents(t *testing.T) {
+func TestInitialSnapshotEmitsMountedEvents(t *testing.T) {
 	path := tempMounts(t, []string{"/dev/sdb1 /volumeUSB1/usbshare1 exfat rw 0 0"})
 	w := New(path, testInterval)
 	cancel := startWatcher(t, w)
 	defer cancel()
 	waitForTick()
 	evts := drainEvents(t, w.Events(), 2*testInterval)
-	if len(evts) != 0 {
-		t.Errorf("expected no events on initial snapshot, got %d: %v", len(evts), evts)
+	if len(evts) != 1 {
+		t.Fatalf("expected 1 Mounted event for already-mounted volume, got %d: %v", len(evts), evts)
+	}
+	if evts[0].Action != Mounted {
+		t.Errorf("expected Action=Mounted, got %v", evts[0].Action)
+	}
+	if evts[0].MountPoint != "/volumeUSB1/usbshare1" {
+		t.Errorf("unexpected MountPoint: %q", evts[0].MountPoint)
 	}
 }
 
@@ -106,7 +112,11 @@ func TestUnmountedEventEmittedWhenUSBLineRemoved(t *testing.T) {
 	w := New(path, testInterval)
 	cancel := startWatcher(t, w)
 	defer cancel()
+	// Drain the Mounted event emitted for the already-present card before
+	// testing the removal path.
 	waitForTick()
+	drainEvents(t, w.Events(), 2*testInterval)
+	// Remove the card; the next poll should emit an Unmounted event.
 	writeMounts(t, path, []string{"sysfs /sys sysfs rw 0 0"})
 	evts := drainEvents(t, w.Events(), 10*testInterval)
 	if len(evts) != 1 {

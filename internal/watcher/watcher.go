@@ -125,6 +125,13 @@ func (w *Watcher) Start(ctx context.Context) error {
 				slog.Debug("watcher: initial snapshot populated",
 					slog.Int("usb_mounts", len(snapshot)),
 				)
+				// Emit Mounted events for volumes already present at startup.
+				// Without this, a card inserted before the daemon starts (or
+				// before a restart) is absorbed into the baseline and never
+				// processed. The importer's dedup layer prevents double-imports.
+				for mp, entry := range current {
+					w.send(MountEvent{MountPoint: mp, Device: entry.device, FSType: entry.fsType, Action: Mounted})
+				}
 				continue
 			}
 
