@@ -103,6 +103,7 @@ func main() {
 	// by handleMount after UUID resolution and cleaned up on Unmounted events.
 	// setCfg consults it to trigger imports when a pending card is activated.
 	var activeMounts sync.Map // map[string]watcher.MountEvent
+	var importMu sync.Mutex
 
 	w := watcher.New(*procMounts, *pollInterval, cfg.WatchPaths...)
 
@@ -124,9 +125,29 @@ func main() {
 			}
 			if v, ok := activeMounts.Load(uuid); ok {
 				slog.Info("card activated while mounted, triggering import", slog.String("uuid", uuid))
-				go handleMount(ctx, getCfg, notifier, setCfg, bus, v.(watcher.MountEvent), *cfgPath, &activeMounts, histLog)
+				go handleMount(ctx, getCfg, notifier, setCfg, bus, v.(watcher.MountEvent), *cfgPath, &activeMounts, histLog, &importMu)
 			}
 		}
+	}
+
+	triggerImport := func(uuid string) error {
+		v, ok := activeMounts.Load(uuid)
+		if !ok {
+			return fmt.Errorf("card not mounted")
+		}
+		c := getCfg()
+		entry, exists := c.Cards[uuid]
+		if !exists || entry.Status != config.StatusActive {
+			return fmt.Errorf("card not active")
+		}
+		if !importMu.TryLock() {
+			return fmt.Errorf("import already in progress")
+		}
+		go func() {
+			defer importMu.Unlock()
+			handleMount(ctx, getCfg, notifier, setCfg, bus, v.(watcher.MountEvent), *cfgPath, &activeMounts, histLog, nil)
+		}()
+		return nil
 	}
 
 	if *webuiPort > 0 {
@@ -150,7 +171,7 @@ func main() {
 			return out
 		}
 		go func() {
-			srv := webui.New(acc, bus, histLog, getMounts, *webuiPort)
+			srv := webui.New(acc, bus, histLog, getMounts, triggerImport, *webuiPort)
 			if err := srv.Start(ctx); err != nil {
 				slog.Error("webui: stopped", "error", err)
 			}
@@ -201,7 +222,7 @@ func main() {
 					return true
 				})
 			case watcher.Mounted:
-				go handleMount(ctx, getCfg, notifier, setCfg, bus, evt, *cfgPath, &activeMounts, histLog)
+				go handleMount(ctx, getCfg, notifier, setCfg, bus, evt, *cfgPath, &activeMounts, histLog, &importMu)
 			}
 		}
 	}
@@ -217,6 +238,7 @@ func handleMount(
 	cfgPath string,
 	activeMounts *sync.Map,
 	histLog *history.Log,
+	importMu *sync.Mutex,
 ) {
 	cfg := getCfg()
 	slog.Info("mount detected", "mount_point", evt.MountPoint, "device", evt.Device)
@@ -268,6 +290,14 @@ func handleMount(
 		Time:      time.Now(),
 	}); err != nil {
 		slog.Warn("notify: delivery failed", "kind", string(notify.KindImportStarted), "error", err)
+	}
+
+	if importMu != nil {
+		if !importMu.TryLock() {
+			slog.Warn("import already in progress, skipping auto-trigger", "uuid", uuid)
+			return
+		}
+		defer importMu.Unlock()
 	}
 
 	imp := importer.New(getCfg(), n)
@@ -342,6 +372,7 @@ func handleMount(
 		Skipped:     res.Skipped,
 		Failed:      res.Failed,
 		BytesCopied: res.BytesCopied,
+		HookOutput:  res.HookOutput,
 	})
 
 	slog.Info("import complete",

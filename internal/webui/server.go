@@ -8,6 +8,7 @@ import (
 	"net"
 	"net/http"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/jmsnll/cardimportd/internal/config"
@@ -26,16 +27,17 @@ type ConfigAccessor struct {
 
 // Server is a small HTTP management server embedded in the daemon.
 type Server struct {
-	acc       ConfigAccessor
-	bus       *EventBus
-	hist      *history.Log
-	getMounts func() []MountedVolume
-	port      int
+	acc           ConfigAccessor
+	bus           *EventBus
+	hist          *history.Log
+	getMounts     func() []MountedVolume
+	triggerImport func(string) error
+	port          int
 }
 
-// New constructs a Server with the given accessor, event bus, history log, mount accessor, and listen port.
-func New(acc ConfigAccessor, bus *EventBus, hist *history.Log, getMounts func() []MountedVolume, port int) *Server {
-	return &Server{acc: acc, bus: bus, hist: hist, getMounts: getMounts, port: port}
+// New constructs a Server with the given accessor, event bus, history log, mount accessor, trigger function, and listen port.
+func New(acc ConfigAccessor, bus *EventBus, hist *history.Log, getMounts func() []MountedVolume, triggerImport func(string) error, port int) *Server {
+	return &Server{acc: acc, bus: bus, hist: hist, getMounts: getMounts, triggerImport: triggerImport, port: port}
 }
 
 // Start registers routes and listens until ctx is cancelled.
@@ -50,16 +52,23 @@ func (s *Server) Start(ctx context.Context) error {
 	mux.Handle("/", http.FileServer(http.FS(stripped)))
 
 	// API routes.
-	api := &apiHandler{acc: s.acc, bus: s.bus, hist: s.hist, getMounts: s.getMounts}
+	api := &apiHandler{acc: s.acc, bus: s.bus, hist: s.hist, getMounts: s.getMounts, triggerImport: s.triggerImport}
 	api.startEventLoop(ctx)
 	mux.HandleFunc("/api/config", api.handleConfig)
 	mux.HandleFunc("/api/cards", api.handleCards)
-	mux.HandleFunc("/api/cards/", api.handleCard) // /api/cards/{uuid}
+	mux.HandleFunc("/api/cards/", func(w http.ResponseWriter, r *http.Request) {
+		if strings.HasSuffix(r.URL.Path, "/import") {
+			api.handleManualImport(w, r)
+		} else {
+			api.handleCard(w, r)
+		}
+	})
 	mux.HandleFunc("/api/notify/test", api.handleNotifyTest)
 	mux.HandleFunc("/api/events", api.handleEvents)
 	mux.HandleFunc("/api/fs", api.handleFS)
 	mux.HandleFunc("/api/history", api.handleHistory)
 	mux.HandleFunc("/api/status", api.handleStatus)
+	mux.HandleFunc("/api/dashboard", api.handleDashboard)
 	mux.HandleFunc("/api/preflight/", api.handlePreflight)
 	mux.HandleFunc("/api/users", api.handleUsers)
 	mux.HandleFunc("/api/users/", api.handleUser)

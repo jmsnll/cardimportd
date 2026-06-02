@@ -9,9 +9,9 @@ import (
 	"time"
 )
 
-func runHook(hookCmd, owner, mountPath string, res Result) error {
+func runHook(hookCmd, owner, mountPath string, res Result) (string, error) {
 	if hookCmd == "" {
-		return nil
+		return "", nil
 	}
 	ctx, cancel := context.WithTimeout(context.Background(), 60*time.Second)
 	defer cancel()
@@ -29,7 +29,7 @@ func runHook(hookCmd, owner, mountPath string, res Result) error {
 		slog.Debug("post-import hook output", "output", string(out))
 	}
 	if err != nil {
-		return fmt.Errorf("post-import hook: %w", err)
+		return "", fmt.Errorf("post-import hook: %w", err)
 	}
-	return nil
+	return string(out), nil
 }

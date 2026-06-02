@@ -12,6 +12,7 @@ import (
 	"strconv"
 	"strings"
 	"sync"
+	"syscall"
 	"time"
 
 	"github.com/jmsnll/cardimportd/internal/config"
@@ -33,11 +34,29 @@ type StatusResponse struct {
 	ActiveImport *ProgressEvent  `json:"active_import"`
 }
 
+// StorageStats describes free/total disk space for the import root.
+type StorageStats struct {
+	TotalBytes     int64 `json:"total_bytes"`
+	FreeBytes      int64 `json:"free_bytes"`
+	AvailableBytes int64 `json:"available_bytes"`
+}
+
+// DashboardResponse is returned by GET /api/dashboard.
+type DashboardResponse struct {
+	MountedCards  []MountedVolume             `json:"mounted_cards"`
+	ActiveImport  *ProgressEvent              `json:"active_import"`
+	RecentHistory []history.Entry             `json:"recent_history"`
+	Storage       *StorageStats               `json:"storage,omitempty"`
+	WatchPaths    []string                    `json:"watch_paths"`
+	PendingCards  map[string]config.CardEntry `json:"pending_cards"`
+}
+
 type apiHandler struct {
-	acc       ConfigAccessor
-	bus       *EventBus
-	hist      *history.Log
-	getMounts func() []MountedVolume
+	acc           ConfigAccessor
+	bus           *EventBus
+	hist          *history.Log
+	getMounts     func() []MountedVolume
+	triggerImport func(string) error
 
 	mu           sync.RWMutex
 	activeImport *ProgressEvent
@@ -626,6 +645,97 @@ func (h *apiHandler) deleteUser(w http.ResponseWriter, r *http.Request, name str
 		return
 	}
 	h.acc.Set(updated)
+	writeJSON(w, map[string]bool{"ok": true}, http.StatusOK)
+}
+
+// -- /api/dashboard -----------------------------------------------------------
+
+func (h *apiHandler) handleDashboard(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodGet {
+		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+	h.mu.RLock()
+	ai := h.activeImport
+	h.mu.RUnlock()
+
+	var mounts []MountedVolume
+	if h.getMounts != nil {
+		mounts = h.getMounts()
+	}
+	if mounts == nil {
+		mounts = []MountedVolume{}
+	}
+
+	recent, _ := h.hist.Recent(10)
+	if recent == nil {
+		recent = []history.Entry{}
+	}
+
+	cfg := h.acc.Get()
+
+	pending := make(map[string]config.CardEntry)
+	for uuid, entry := range cfg.Cards {
+		if entry.Status == config.StatusPending {
+			pending[uuid] = entry
+		}
+	}
+
+	var storage *StorageStats
+	if cfg.ImportRoot != "" {
+		var st syscall.Statfs_t
+		if err := syscall.Statfs(cfg.ImportRoot, &st); err == nil {
+			storage = &StorageStats{
+				TotalBytes:     int64(st.Blocks) * int64(st.Bsize),
+				FreeBytes:      int64(st.Bfree) * int64(st.Bsize),
+				AvailableBytes: int64(st.Bavail) * int64(st.Bsize),
+			}
+		}
+	}
+
+	writeJSON(w, DashboardResponse{
+		MountedCards:  mounts,
+		ActiveImport:  ai,
+		RecentHistory: recent,
+		Storage:       storage,
+		WatchPaths:    cfg.WatchPaths,
+		PendingCards:  pending,
+	}, http.StatusOK)
+}
+
+// -- /api/cards/{uuid}/import -------------------------------------------------
+
+func (h *apiHandler) handleManualImport(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+	uuid := strings.TrimPrefix(r.URL.Path, "/api/cards/")
+	uuid = strings.TrimSuffix(uuid, "/import")
+	if uuid == "" {
+		apiError(w, "uuid is required", http.StatusBadRequest)
+		return
+	}
+	if h.triggerImport == nil {
+		apiError(w, "manual import not available", http.StatusServiceUnavailable)
+		return
+	}
+	if err := h.triggerImport(uuid); err != nil {
+		if strings.Contains(err.Error(), "already in progress") {
+			apiError(w, "import already in progress", http.StatusConflict)
+			return
+		}
+		if strings.Contains(err.Error(), "not mounted") {
+			apiError(w, "card is not currently mounted", http.StatusNotFound)
+			return
+		}
+		if strings.Contains(err.Error(), "not active") {
+			apiError(w, "card is not activated; set status to active first", http.StatusUnprocessableEntity)
+			return
+		}
+		apiError(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
 	writeJSON(w, map[string]bool{"ok": true}, http.StatusOK)
 }
 
