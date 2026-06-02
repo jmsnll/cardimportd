@@ -2,8 +2,9 @@
 // destination layout: {dst}/YYYY/MM/DD/{filename}.
 //
 // It uses EXIF DateTimeOriginal (with video container and mtime fallbacks) to
-// determine the date, then performs a verified copy (SHA-256) followed by removal
-// of the source file.
+// determine the date, then moves each file. When src and dst share a filesystem
+// the move is an atomic os.Rename (no I/O); cross-device moves fall back to a
+// SHA-256 verified copy followed by removal of the source.
 //
 // Usage:
 //
@@ -23,6 +24,7 @@ import (
 	"strings"
 	"sync"
 	"sync/atomic"
+	"syscall"
 	"time"
 
 	"github.com/charmbracelet/log"
@@ -267,15 +269,12 @@ func main() {
 						processed.Add(1)
 						continue
 					}
-					n, _, copyErr := importer.CopyVerified(path, finalDst)
-					if copyErr != nil {
-						logger.Error("copy failed", "src", path, "dst", finalDst, "error", copyErr)
+					n, moveErr := moveFile(path, finalDst)
+					if moveErr != nil {
+						logger.Error("move failed", "src", path, "dst", finalDst, "error", moveErr)
 						failed.Add(1)
 						processed.Add(1)
 						continue
-					}
-					if err := os.Remove(path); err != nil {
-						logger.Warn("remove source failed after copy", "src", path, "error", err)
 					}
 					moved.Add(1)
 					bytesMoved.Add(n)
@@ -296,14 +295,11 @@ func main() {
 								failed.Add(1)
 								continue
 							}
-							n, _, copyErr := importer.CopyVerified(sc.src, sc.dst)
-							if copyErr != nil {
-								logger.Error("copy sidecar failed", "src", sc.src, "dst", sc.dst, "error", copyErr)
+							n, moveErr := moveFile(sc.src, sc.dst)
+							if moveErr != nil {
+								logger.Error("move sidecar failed", "src", sc.src, "dst", sc.dst, "error", moveErr)
 								failed.Add(1)
 								continue
-							}
-							if err := os.Remove(sc.src); err != nil {
-								logger.Warn("remove sidecar source failed after copy", "src", sc.src, "error", err)
 							}
 							moved.Add(1)
 							bytesMoved.Add(n)
@@ -399,6 +395,27 @@ func resolveAction(srcPath, dstPath string, mu *sync.Mutex) (action, string, err
 		}
 	}
 	return 0, "", fmt.Errorf("could not find unique destination for %q after 998 attempts", filepath.Base(dstPath))
+}
+
+// moveFile moves src to dst. It tries os.Rename first; on the same filesystem
+// this is a metadata-only operation with no data I/O. If rename fails with
+// EXDEV (cross-device) it falls back to a SHA-256 verified copy followed by
+// removal of the source. Returns the number of bytes physically written (0 for
+// a rename).
+func moveFile(src, dst string) (int64, error) {
+	if err := os.Rename(src, dst); err == nil {
+		return 0, nil
+	} else if !errors.Is(err, syscall.EXDEV) {
+		return 0, err
+	}
+	n, _, err := importer.CopyVerified(src, dst)
+	if err != nil {
+		return 0, err
+	}
+	if err := os.Remove(src); err != nil {
+		slog.Warn("photomigrate: remove source after copy failed", "src", src, "err", err)
+	}
+	return n, nil
 }
 
 func sameContent(a, b string) (bool, error) {
