@@ -1,7 +1,9 @@
 .PHONY: help build test bench lint vet build-dsm-amd64 build-dsm-arm64 clean ui
 
-BINARY  := cardimportd
-CMD     := ./cmd/$(BINARY)
+BINARY    := cardimportd
+CMD       := ./cmd/$(BINARY)
+BUILD_DIR := build
+VERSION   ?= $(shell git describe --tags --always --dirty 2>/dev/null || echo "dev")
 
 help:
 	@echo "Usage: make <target>"
@@ -16,20 +18,20 @@ help:
 	@echo "  build-dsm-arm64   Cross-compile for Synology arm64 (DS220j, DS418, etc.)"
 	@echo "  spk-amd64         Build a .spk package for x86_64"
 	@echo "  spk-arm64         Build a .spk package for armv8"
-	@echo "  clean             Remove built binaries and ui/node_modules"
+	@echo "  clean             Remove build/ and ui/node_modules"
 
 ui:
 	cd ui && npm install && npm run build
 
 build: ui
-	go build -o $(BINARY) $(CMD)
+	@mkdir -p $(BUILD_DIR)
+	go build -o $(BUILD_DIR)/$(BINARY) $(CMD)
 
 test:
 	go test -race ./...
 
 # Run benchmarks and save results to benchmarks/<version>.txt.
 # VERSION can be overridden: make bench VERSION=v1.2.3
-VERSION ?= $(shell git describe --tags --always --dirty 2>/dev/null || echo "dev")
 bench:
 	@mkdir -p benchmarks
 	go test -bench=. -benchmem -count=5 -benchtime=1s \
@@ -46,18 +48,20 @@ lint: vet
 # Most modern Synology NAS (DS923+, DS1522+, etc.) use x86_64.
 # ARM-based models (DS220j, DS418, etc.) need arm64.
 build-dsm-amd64: ui
-	GOOS=linux GOARCH=amd64 go build -o $(BINARY)-linux-amd64 $(CMD)
+	@mkdir -p $(BUILD_DIR)
+	GOOS=linux GOARCH=amd64 go build -o $(BUILD_DIR)/$(BINARY)-linux-amd64 $(CMD)
 
 build-dsm-arm64: ui
-	GOOS=linux GOARCH=arm64 go build -o $(BINARY)-linux-arm64 $(CMD)
+	@mkdir -p $(BUILD_DIR)
+	GOOS=linux GOARCH=arm64 go build -o $(BUILD_DIR)/$(BINARY)-linux-arm64 $(CMD)
 
 clean:
-	rm -f $(BINARY) $(BINARY)-linux-amd64 $(BINARY)-linux-arm64
+	rm -rf $(BUILD_DIR)
 	rm -rf ui/node_modules
 
 # Build a Synology .spk package (requires the binary to be built first).
 # Usage: make spk-amd64   or   make spk-arm64
-SPK_VERSION := 1.0.0-0001
+SPK_VERSION := $(patsubst v%,%,$(VERSION))
 
 spk-amd64: build-dsm-amd64
 	$(MAKE) _spk ARCH=x86_64 BINARY_SUFFIX=linux-amd64
@@ -70,7 +74,7 @@ _spk:
 	@tmpdir=$$(mktemp -d) && \
 	 target=$$tmpdir/target && \
 	 mkdir -p $$target && \
-	 cp $(BINARY)-$(BINARY_SUFFIX) $$target/$(BINARY) && \
+	 cp $(BUILD_DIR)/$(BINARY)-$(BINARY_SUFFIX) $$target/$(BINARY) && \
 	 cp config.example.yaml $$target/config.example.yaml && \
 	 chmod +x $$target/$(BINARY) && \
 	 tar czf $$tmpdir/package.tgz -C $$target . && \
@@ -81,6 +85,6 @@ _spk:
 	 sed -e "s/arch=\"x86_64\"/arch=\"$(ARCH)\"/" \
 	     -e "s/version=\"[^\"]*\"/version=\"$(SPK_VERSION)\"/" > $$tmpdir/INFO && \
 	 chmod +x $$tmpdir/scripts/* && \
-	 tar cf $(BINARY)-$(SPK_VERSION)-$(ARCH).spk -C $$tmpdir INFO package.tgz scripts conf && \
+	 tar cf $(BUILD_DIR)/$(BINARY)-$(SPK_VERSION)-$(ARCH).spk -C $$tmpdir INFO package.tgz scripts conf && \
 	 rm -rf $$tmpdir && \
-	 echo "Created $(BINARY)-$(SPK_VERSION)-$(ARCH).spk"
+	 echo "Created $(BUILD_DIR)/$(BINARY)-$(SPK_VERSION)-$(ARCH).spk"
