@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"crypto/sha256"
 	"errors"
 	"flag"
 	"fmt"
@@ -308,7 +309,52 @@ func cardUUID(device string) (string, error) {
 		}
 		return v, nil
 	}
-	return "", fmt.Errorf("blkid: no usable identifier (UUID, PARTUUID, or LABEL) found for %s", device)
+	// Last resort: derive a stable fingerprint from partition geometry via sysfs.
+	// exFAT SD cards formatted by cameras often have a zero volume serial, no
+	// GPT partition UUID, and no label — leaving geometry as the only stable
+	// per-card attribute. The SHA-256 of disk-size:part-start:part-size is
+	// constant for a given physical card across insertions.
+	if fp, ok := geometryFingerprint(device); ok {
+		slog.Warn("cardUUID: no blkid identifier available, falling back to geometry fingerprint",
+			slog.String("device", device),
+			slog.String("fingerprint", fp),
+			slog.String("tip", "reformat the card on a computer to assign a proper UUID"),
+		)
+		return fp, nil
+	}
+	return "", fmt.Errorf("blkid: no usable identifier found for %s", device)
+}
+
+// geometryFingerprint derives a UUID-shaped stable identifier from the
+// partition's disk-size, start sector, and partition size as reported by
+// sysfs. These values are constant for a given physical card.
+func geometryFingerprint(device string) (string, bool) {
+	devname := filepath.Base(device)
+	realPath, err := filepath.EvalSymlinks("/sys/class/block/" + devname)
+	if err != nil {
+		return "", false
+	}
+	diskName := filepath.Base(filepath.Dir(realPath))
+
+	read := func(path string) string {
+		b, err := os.ReadFile(path)
+		if err != nil {
+			return ""
+		}
+		return strings.TrimSpace(string(b))
+	}
+
+	diskSize := read("/sys/class/block/" + diskName + "/size")
+	partStart := read("/sys/class/block/" + devname + "/start")
+	partSize := read("/sys/class/block/" + devname + "/size")
+
+	if diskSize == "" || partStart == "" || partSize == "" {
+		return "", false
+	}
+
+	h := sha256.Sum256([]byte(diskSize + ":" + partStart + ":" + partSize))
+	s := fmt.Sprintf("%x", h)
+	return fmt.Sprintf("%s-%s-%s-%s-%s", s[:8], s[8:12], s[12:16], s[16:20], s[20:32]), true
 }
 
 func blkidField(device, field string) (string, bool) {
