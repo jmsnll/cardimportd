@@ -23,7 +23,9 @@ import (
 	"strings"
 	"sync"
 	"sync/atomic"
+	"time"
 
+	"github.com/charmbracelet/log"
 	"github.com/jmsnll/cardimportd/internal/importer"
 	"github.com/jmsnll/cardimportd/internal/meta"
 )
@@ -47,7 +49,7 @@ func main() {
 	src     := flag.String("src", "", "source directory to scan recursively (required)")
 	dst     := flag.String("dst", "", "destination root; files land at {dst}/YYYY/MM/DD/ (required)")
 	dryRun  := flag.Bool("dry-run", false, "print planned operations without executing")
-	verbose := flag.Bool("verbose", false, "print each file operation even when not in dry-run")
+	verbose := flag.Bool("verbose", false, "log each file operation")
 	workers := flag.Int("workers", runtime.NumCPU(), "number of parallel copy workers")
 	extFlag := flag.String("ext", "", "comma-separated extensions to include (default: same set as cardimportd)")
 	flag.Parse()
@@ -58,23 +60,65 @@ func main() {
 		os.Exit(1)
 	}
 
+	logLevel := log.InfoLevel
+	if *verbose {
+		logLevel = log.DebugLevel
+	}
+	logger := log.NewWithOptions(os.Stderr, log.Options{
+		ReportTimestamp: false,
+		Level:           logLevel,
+	})
+	slog.SetDefault(slog.New(logger))
+
 	srcReal := realPath(*src)
 	dstReal := realPath(*dst)
 	sep := string(os.PathSeparator)
 	if srcReal == dstReal ||
 		strings.HasPrefix(dstReal, srcReal+sep) ||
 		strings.HasPrefix(srcReal, dstReal+sep) {
-		fmt.Fprintln(os.Stderr, "photomigrate: -src and -dst must not overlap")
-		os.Exit(1)
+		logger.Fatal("-src and -dst must not overlap")
 	}
-
-	logger := slog.New(slog.NewTextHandler(os.Stdout, &slog.HandlerOptions{Level: slog.LevelInfo}))
-	slog.SetDefault(logger)
 
 	exts := buildExtSet(*extFlag)
 
+	// ── Phase 1: scan ───────────────────────────────────────────────────────
+
+	logger.Info("Scanning", "src", *src)
+
+	var files []string
+	walkErr := filepath.WalkDir(*src, func(path string, d os.DirEntry, err error) error {
+		if err != nil {
+			logger.Warn("walk error", "path", path, "error", err)
+			return nil
+		}
+		if d.IsDir() {
+			if strings.HasPrefix(d.Name(), "@") {
+				return filepath.SkipDir
+			}
+			return nil
+		}
+		if !exts[strings.ToLower(filepath.Ext(path))] {
+			return nil
+		}
+		files = append(files, path)
+		return nil
+	})
+	if walkErr != nil {
+		logger.Fatal("directory walk failed", "error", walkErr)
+	}
+
+	total := len(files)
+	logger.Info("Scan complete", "files", total)
+
+	if total == 0 {
+		logger.Info("Nothing to migrate")
+		return
+	}
+
+	// ── Phase 2: process ────────────────────────────────────────────────────
+
 	var (
-		total      atomic.Int64
+		processed  atomic.Int64
 		moved      atomic.Int64
 		skipped    atomic.Int64
 		failed     atomic.Int64
@@ -82,7 +126,42 @@ func main() {
 	)
 
 	work := make(chan string, *workers*4)
+	start := time.Now()
 
+	// Progress line — suppressed in verbose/dry-run since per-file logs already give visibility.
+	var stopProgress chan struct{}
+	if !*verbose && !*dryRun {
+		stopProgress = make(chan struct{})
+		go func() {
+			ticker := time.NewTicker(200 * time.Millisecond)
+			defer ticker.Stop()
+			for {
+				select {
+				case <-ticker.C:
+					n := processed.Load()
+					pct := float64(n) / float64(total) * 100
+					elapsed := time.Since(start).Seconds()
+					rate := 0.0
+					if elapsed > 0 {
+						rate = float64(n) / elapsed
+					}
+					eta := ""
+					if rate > 0 {
+						remaining := time.Duration(float64(int64(total)-n)/rate) * time.Second
+						eta = fmt.Sprintf("  eta %s", remaining.Round(time.Second))
+					}
+					fmt.Fprintf(os.Stderr, "\r  %5.1f%%  %d/%d  %.0f files/s%s  moved=%d  skipped=%d  failed=%d   ",
+						pct, n, total, rate, eta,
+						moved.Load(), skipped.Load(), failed.Load())
+				case <-stopProgress:
+					fmt.Fprintln(os.Stderr)
+					return
+				}
+			}
+		}()
+	}
+
+	var resolveMu sync.Mutex
 	var wg sync.WaitGroup
 	for range *workers {
 		wg.Go(func() {
@@ -95,21 +174,24 @@ func main() {
 				)
 				naiveDst := filepath.Join(dstDir, filepath.Base(path))
 
-				op, finalDst, err := resolveAction(path, naiveDst)
-				if err != nil {
-					slog.Error("could not resolve destination", "src", path, "error", err)
+				resolveMu.Lock()
+				op, finalDst, resolveErr := resolveAction(path, naiveDst)
+				resolveMu.Unlock()
+				if resolveErr != nil {
+					logger.Error("could not resolve destination", "src", path, "error", resolveErr)
 					failed.Add(1)
+					processed.Add(1)
 					continue
 				}
 
-				if *dryRun || *verbose {
+				if *verbose {
 					switch op {
 					case actionSkip:
-						fmt.Printf("SKIP  %s\n      (already at %s)\n", path, finalDst)
+						logger.Debug("skip", "src", path, "dst", finalDst)
 					case actionRename:
-						fmt.Printf("MOVE  %s\n   -> %s  (renamed to avoid collision)\n", path, finalDst)
+						logger.Debug("move", "src", path, "dst", finalDst, "note", "renamed to avoid collision")
 					default:
-						fmt.Printf("MOVE  %s\n   -> %s\n", path, finalDst)
+						logger.Debug("move", "src", path, "dst", finalDst)
 					}
 				}
 
@@ -119,66 +201,64 @@ func main() {
 					} else {
 						moved.Add(1)
 					}
+					processed.Add(1)
 					continue
 				}
 
 				switch op {
 				case actionSkip:
 					if err := os.Remove(path); err != nil {
-						slog.Warn("remove source failed (already at dst)", "src", path, "error", err)
+						logger.Warn("remove source failed", "src", path, "error", err)
 					}
 					skipped.Add(1)
 
 				default:
 					if err := os.MkdirAll(filepath.Dir(finalDst), 0o755); err != nil {
-						slog.Error("mkdir failed", "dir", filepath.Dir(finalDst), "error", err)
+						logger.Error("mkdir failed", "dir", filepath.Dir(finalDst), "error", err)
 						failed.Add(1)
+						processed.Add(1)
 						continue
 					}
 					n, _, copyErr := importer.CopyVerified(path, finalDst)
 					if copyErr != nil {
-						slog.Error("copy failed", "src", path, "dst", finalDst, "error", copyErr)
+						logger.Error("copy failed", "src", path, "dst", finalDst, "error", copyErr)
 						failed.Add(1)
+						processed.Add(1)
 						continue
 					}
 					if err := os.Remove(path); err != nil {
-						slog.Warn("remove source failed after copy", "src", path, "error", err)
+						logger.Warn("remove source failed after copy", "src", path, "error", err)
 					}
 					moved.Add(1)
 					bytesMoved.Add(n)
 				}
+
+				processed.Add(1)
 			}
 		})
 	}
 
-	err := filepath.WalkDir(*src, func(path string, d os.DirEntry, walkErr error) error {
-		if walkErr != nil {
-			slog.Warn("walk error", "path", path, "error", walkErr)
-			return nil
-		}
-		if d.IsDir() {
-			return nil
-		}
-		if !exts[strings.ToLower(filepath.Ext(path))] {
-			return nil
-		}
-		total.Add(1)
+	for _, path := range files {
 		work <- path
-		return nil
-	})
-
+	}
 	close(work)
 	wg.Wait()
 
-	if err != nil {
-		slog.Error("directory walk failed", "error", err)
-		os.Exit(1)
+	if stopProgress != nil {
+		close(stopProgress)
 	}
 
-	fmt.Printf("\ntotal=%d  moved=%d  skipped=%d  failed=%d  bytes=%d\n",
-		total.Load(), moved.Load(), skipped.Load(), failed.Load(), bytesMoved.Load())
+	elapsed := time.Since(start).Round(time.Second)
+	gb := float64(bytesMoved.Load()) / (1 << 30)
+	logger.Info("Complete",
+		"moved", moved.Load(),
+		"skipped", skipped.Load(),
+		"failed", failed.Load(),
+		"data", fmt.Sprintf("%.2f GB", gb),
+		"elapsed", elapsed,
+	)
 	if *dryRun {
-		fmt.Println("(dry-run: no files were modified)")
+		logger.Info("Dry run — no files were modified")
 	}
 }
 
