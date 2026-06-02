@@ -1,5 +1,14 @@
 # Changelog
 
+## [0.13.8](https://github.com/jmsnll/cardimportd/compare/v0.13.7...v0.13.8) (2026-06-02)
+
+
+### Bug Fixes
+
+* assign UUID via UUID.txt for cards with no blkid identifier ([58852f8](https://github.com/jmsnll/cardimportd/commit/58852f880c07b8d872dc80ced351d4b044f4e7f3))
+* fall back to geometry fingerprint for SD cards with no blkid identifier ([6d87628](https://github.com/jmsnll/cardimportd/commit/6d8762833fa8072933f4d86333a394ed80a84111))
+* use JSON log format in package scripts to match app output ([d0b2040](https://github.com/jmsnll/cardimportd/commit/d0b204035acdd6d053da3d553b19550157bc0508))
+
 ## [0.13.7](https://github.com/jmsnll/cardimportd/compare/v0.13.6...v0.13.7) (2026-06-02)
 
 
