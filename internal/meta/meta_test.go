@@ -223,7 +223,7 @@ func TestExtractRAFMeta_TruncatedHeader(t *testing.T) {
 	if err != nil {
 		t.Fatalf("CreateTemp: %v", err)
 	}
-	_, _ = f.Write([]byte("FUJIFILM"))
+	_, _ = f.WriteString("FUJIFILM")
 	path := f.Name()
 	f.Close()
 
