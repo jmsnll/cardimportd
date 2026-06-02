@@ -2,7 +2,7 @@ package main
 
 import (
 	"context"
-	"crypto/sha256"
+	"crypto/rand"
 	"errors"
 	"flag"
 	"fmt"
@@ -165,7 +165,7 @@ func handleMount(
 	cfg := getCfg()
 	slog.Info("mount detected", "mount_point", evt.MountPoint, "device", evt.Device)
 
-	uuid, err := cardUUID(evt.Device)
+	uuid, err := cardUUID(evt.Device, evt.MountPoint)
 	if err != nil {
 		slog.Warn("could not determine card UUID", "device", evt.Device, "error", err)
 		return
@@ -288,10 +288,10 @@ func checkBlkid() {
 	}
 }
 
-func cardUUID(device string) (string, error) {
+func cardUUID(device, mountPoint string) (string, error) {
 	// UUID covers most cards. exFAT SD cards formatted by cameras sometimes
-	// have a zero Volume Serial Number, which makes blkid return empty even
-	// on success. Fall back to PARTUUID (GPT disks) then LABEL before giving up.
+	// have a zero Volume Serial Number, making blkid return empty. Fall back
+	// through PARTUUID and LABEL before trying UUID.txt.
 	for _, field := range []string{"UUID", "PARTUUID", "LABEL"} {
 		v, ok := blkidField(device, field)
 		if !ok {
@@ -309,52 +309,46 @@ func cardUUID(device string) (string, error) {
 		}
 		return v, nil
 	}
-	// Last resort: derive a stable fingerprint from partition geometry via sysfs.
-	// exFAT SD cards formatted by cameras often have a zero volume serial, no
-	// GPT partition UUID, and no label — leaving geometry as the only stable
-	// per-card attribute. The SHA-256 of disk-size:part-start:part-size is
-	// constant for a given physical card across insertions.
-	if fp, ok := geometryFingerprint(device); ok {
-		slog.Warn("cardUUID: no blkid identifier available, falling back to geometry fingerprint",
-			slog.String("device", device),
-			slog.String("fingerprint", fp),
-			slog.String("tip", "reformat the card on a computer to assign a proper UUID"),
-		)
-		return fp, nil
+
+	// No blkid identifier found. Check for a UUID.txt file written on a
+	// previous insertion, then try to create one. This is safe: it is a
+	// normal filesystem write rather than a raw device write.
+	uuidFile := filepath.Join(mountPoint, "UUID.txt")
+	if data, err := os.ReadFile(uuidFile); err == nil {
+		if uuid := strings.TrimSpace(string(data)); uuid != "" {
+			slog.Info("cardUUID: using UUID from UUID.txt", slog.String("device", device), slog.String("uuid", uuid))
+			return uuid, nil
+		}
 	}
-	return "", fmt.Errorf("blkid: no usable identifier found for %s", device)
+
+	uuid, err := generateUUID()
+	if err != nil {
+		return "", fmt.Errorf("cardUUID: generate UUID: %w", err)
+	}
+	if err := os.WriteFile(uuidFile, []byte(uuid+"\n"), 0o644); err != nil {
+		slog.Warn("cardUUID: card has no identifier and UUID.txt could not be written — card may be mounted read-only; reformat on a computer to assign a UUID",
+			slog.String("device", device),
+			slog.String("mount_point", mountPoint),
+			slog.String("error", err.Error()),
+		)
+		return "", fmt.Errorf("cardUUID: no identifier for %s and UUID.txt write failed: %w", device, err)
+	}
+	slog.Warn("cardUUID: no identifier found; assigned new UUID via UUID.txt",
+		slog.String("device", device),
+		slog.String("mount_point", mountPoint),
+		slog.String("uuid", uuid),
+	)
+	return uuid, nil
 }
 
-// geometryFingerprint derives a UUID-shaped stable identifier from the
-// partition's disk-size, start sector, and partition size as reported by
-// sysfs. These values are constant for a given physical card.
-func geometryFingerprint(device string) (string, bool) {
-	devname := filepath.Base(device)
-	realPath, err := filepath.EvalSymlinks("/sys/class/block/" + devname)
-	if err != nil {
-		return "", false
+func generateUUID() (string, error) {
+	var b [16]byte
+	if _, err := rand.Read(b[:]); err != nil {
+		return "", err
 	}
-	diskName := filepath.Base(filepath.Dir(realPath))
-
-	read := func(path string) string {
-		b, err := os.ReadFile(path)
-		if err != nil {
-			return ""
-		}
-		return strings.TrimSpace(string(b))
-	}
-
-	diskSize := read("/sys/class/block/" + diskName + "/size")
-	partStart := read("/sys/class/block/" + devname + "/start")
-	partSize := read("/sys/class/block/" + devname + "/size")
-
-	if diskSize == "" || partStart == "" || partSize == "" {
-		return "", false
-	}
-
-	h := sha256.Sum256([]byte(diskSize + ":" + partStart + ":" + partSize))
-	s := fmt.Sprintf("%x", h)
-	return fmt.Sprintf("%s-%s-%s-%s-%s", s[:8], s[8:12], s[12:16], s[16:20], s[20:32]), true
+	b[6] = (b[6] & 0x0f) | 0x40 // version 4
+	b[8] = (b[8] & 0x3f) | 0x80 // variant bits
+	return fmt.Sprintf("%08x-%04x-%04x-%04x-%012x", b[0:4], b[4:6], b[6:8], b[8:10], b[10:]), nil
 }
 
 func blkidField(device, field string) (string, bool) {
