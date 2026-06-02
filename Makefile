@@ -1,7 +1,22 @@
-.PHONY: build test bench lint vet build-dsm-amd64 build-dsm-arm64 clean ui
+.PHONY: help build test bench lint vet build-dsm-amd64 build-dsm-arm64 clean ui
 
 BINARY  := cardimportd
 CMD     := ./cmd/$(BINARY)
+
+help:
+	@echo "Usage: make <target>"
+	@echo ""
+	@echo "  build             Build the binary (includes UI)"
+	@echo "  ui                Install JS deps and build the web UI"
+	@echo "  test              Run tests with race detector"
+	@echo "  bench             Run benchmarks and save results to benchmarks/"
+	@echo "  vet               Run go vet"
+	@echo "  lint              Run vet (alias)"
+	@echo "  build-dsm-amd64   Cross-compile for Synology x86_64 (DS923+, DS1522+, etc.)"
+	@echo "  build-dsm-arm64   Cross-compile for Synology arm64 (DS220j, DS418, etc.)"
+	@echo "  spk-amd64         Build a .spk package for x86_64"
+	@echo "  spk-arm64         Build a .spk package for armv8"
+	@echo "  clean             Remove built binaries and ui/node_modules"
 
 ui:
 	cd ui && npm install && npm run build
