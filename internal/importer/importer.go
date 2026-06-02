@@ -22,6 +22,7 @@ type Result struct {
 	Failed       int
 	MirrorFailed int
 	BytesCopied  int64
+	HookOutput   string
 }
 
 const progressInterval = 10
@@ -122,7 +123,9 @@ func (imp *Importer) Import(ctx context.Context, owner, mountPath, cardUUID stri
 	}
 
 	if err == nil && imp.cfg.PostImportHook != "" {
-		if hookErr := runHook(imp.cfg.PostImportHook, owner, mountPath, res); hookErr != nil {
+		hookOut, hookErr := runHook(imp.cfg.PostImportHook, owner, mountPath, res)
+		res.HookOutput = hookOut
+		if hookErr != nil {
 			slog.Warn("post-import hook failed", "error", hookErr)
 		}
 	}

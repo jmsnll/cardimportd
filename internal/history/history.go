@@ -24,6 +24,7 @@ type Entry struct {
 	Skipped     int       `json:"skipped"`
 	Failed      int       `json:"failed"`
 	BytesCopied int64     `json:"bytes_copied"`
+	HookOutput  string    `json:"hook_output,omitempty"`
 }
 
 type Log struct {
