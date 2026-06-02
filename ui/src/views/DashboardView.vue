@@ -44,7 +44,12 @@
           <div v-if="data!.active_import" class="notification is-info is-light mt-3 mb-0 py-2 px-3">
             <span class="has-text-weight-semibold">Importing:</span>
             {{ data!.active_import.owner }} —
-            {{ data!.active_import.imported }}/{{ data!.active_import.total }} files
+            <template v-if="data!.active_import.total > 0">
+              {{ data!.active_import.imported }}/{{ data!.active_import.total }} files
+            </template>
+            <template v-else>
+              {{ data!.active_import.imported }} files
+            </template>
             ({{ formatBytes(data!.active_import.bytes_copied) }})
           </div>
         </div>
@@ -132,14 +137,14 @@ async function load() {
 }
 
 function cardLabel(uuid: string): string {
-  const entry = data.value?.pending_cards[uuid]
+  const entry = data.value?.cards[uuid]
   if (entry?.label) return entry.label
   if (entry?.owner) return entry.owner
   return uuid.slice(0, 8) + '…'
 }
 
 function cardStatus(uuid: string): 'active' | 'pending' {
-  return data.value?.pending_cards[uuid] ? 'pending' : 'active'
+  return data.value?.cards[uuid]?.status ?? 'pending'
 }
 
 async function runImport(uuid: string) {

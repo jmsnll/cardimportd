@@ -95,5 +95,6 @@ export interface DashboardResponse {
   recent_history: HistoryEntry[]
   storage?: StorageStats
   watch_paths: string[]
+  cards: Record<string, CardEntry>
   pending_cards: Record<string, CardEntry>
 }

@@ -48,6 +48,7 @@ type DashboardResponse struct {
 	RecentHistory []history.Entry             `json:"recent_history"`
 	Storage       *StorageStats               `json:"storage,omitempty"`
 	WatchPaths    []string                    `json:"watch_paths"`
+	Cards         map[string]config.CardEntry `json:"cards"`
 	PendingCards  map[string]config.CardEntry `json:"pending_cards"`
 }
 
@@ -699,6 +700,7 @@ func (h *apiHandler) handleDashboard(w http.ResponseWriter, r *http.Request) {
 		RecentHistory: recent,
 		Storage:       storage,
 		WatchPaths:    cfg.WatchPaths,
+		Cards:         cfg.Cards,
 		PendingCards:  pending,
 	}, http.StatusOK)
 }
