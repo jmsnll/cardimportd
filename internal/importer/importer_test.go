@@ -403,7 +403,10 @@ func buildJPEGWithRating(model, dto string, rating uint16) []byte {
 	copy(tiff[valAreaOff:], modelB)
 	copy(tiff[valAreaOff+len(modelB):], dtoB)
 
-	app1Body := append([]byte("Exif\x00\x00"), tiff...)
+	exifPfx := []byte("Exif\x00\x00")
+	app1Body := make([]byte, 0, len(exifPfx)+len(tiff))
+	app1Body = append(app1Body, exifPfx...)
+	app1Body = append(app1Body, tiff...)
 	app1Len := uint16(len(app1Body) + 2)
 	var j bytes.Buffer
 	j.Write([]byte{0xFF, 0xD8, 0xFF, 0xE1})

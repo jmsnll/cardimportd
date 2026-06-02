@@ -2,6 +2,7 @@ package importer
 
 import (
 	"encoding/json"
+	"log/slog"
 	"os"
 	"path/filepath"
 	"strings"
@@ -47,7 +48,7 @@ func writeStamp(mountPath, cardUUID, owner string, fileCount int) error {
 // using the same logic as the Import walk so the count is always comparable.
 func countMatchingFiles(mountPath string, ext map[string]bool) int {
 	var n int
-	_ = filepath.WalkDir(mountPath, func(path string, d os.DirEntry, err error) error {
+	if err := filepath.WalkDir(mountPath, func(path string, d os.DirEntry, err error) error {
 		if err != nil || d.IsDir() {
 			return nil
 		}
@@ -58,6 +59,8 @@ func countMatchingFiles(mountPath string, ext map[string]bool) int {
 			n++
 		}
 		return nil
-	})
+	}); err != nil {
+		slog.Warn("importer: stamp walk error", "path", mountPath, "error", err)
+	}
 	return n
 }
