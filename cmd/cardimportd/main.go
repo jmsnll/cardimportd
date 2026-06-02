@@ -27,6 +27,7 @@ import (
 
 func main() {
 	cfgPath      := flag.String("config", "/usr/local/etc/cardimportd/config.yaml", "path to config.yaml")
+	historyPath  := flag.String("history-log", "/usr/local/etc/cardimportd/history.jsonl", "path to import history log")
 	webuiPort    := flag.Int("webui-port", 8085, "web management UI port (0 to disable)")
 	procMounts   := flag.String("proc-mounts", "/proc/mounts", "mounts file to poll")
 	pollInterval := flag.Duration("poll-interval", 2*time.Second, "watcher poll interval")
@@ -95,7 +96,7 @@ func main() {
 		cfg = c
 	}
 
-	histLog := history.New("/var/log/cardimportd-history.jsonl")
+	histLog := history.New(*historyPath)
 
 	bus := webui.NewEventBus(32)
 
