@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.13.11](https://github.com/jmsnll/cardimportd/compare/v0.13.10...v0.13.11) (2026-06-02)
+
+
+### Bug Fixes
+
+* **ci:** commit .gitkeep and recreate it after UI builds ([488b3d7](https://github.com/jmsnll/cardimportd/commit/488b3d751f91695eecbb1111feda40447e34523d))
+* include gitkeep file needed for the release process ([c921de2](https://github.com/jmsnll/cardimportd/commit/c921de255d0cff2fd82df60fb983f0a3e846a527))
+
 ## [0.13.10](https://github.com/jmsnll/cardimportd/compare/v0.13.9...v0.13.10) (2026-06-02)
 
 
