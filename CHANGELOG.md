@@ -1,5 +1,15 @@
 # Changelog
 
+## [0.13.10](https://github.com/jmsnll/cardimportd/compare/v0.13.9...v0.13.10) (2026-06-02)
+
+
+### Features
+
+* **config:** add User type and migrate card owners into cfg.Users on load ([38a1d99](https://github.com/jmsnll/cardimportd/commit/38a1d99c64ebcb31b3006cd8af115f2f3550a733))
+* **ui/cards:** owner dropdown + ActivateCardModal for pending cards ([b5fdc76](https://github.com/jmsnll/cardimportd/commit/b5fdc76c36f6809ceb9b76614fc29d9567e0a11a))
+* **ui/settings:** add People section for user management ([c7fc070](https://github.com/jmsnll/cardimportd/commit/c7fc070bad22705bb61655387e8793df28ac1cb7))
+* **webui:** add User CRUD endpoints and DestinationTemplate field ([46af77a](https://github.com/jmsnll/cardimportd/commit/46af77a66558abdf643692c37f24a1910510f793))
+
 ## [0.13.9](https://github.com/jmsnll/cardimportd/compare/v0.13.8...v0.13.9) (2026-06-02)
 
 
