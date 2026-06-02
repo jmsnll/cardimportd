@@ -1,4 +1,5 @@
 build/
+*.spk
 *.tmp
 config.yaml
 .claude/
