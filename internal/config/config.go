@@ -6,6 +6,7 @@ import (
 	"log/slog"
 	"os"
 	"path/filepath"
+	"sort"
 	"text/template"
 	"time"
 
@@ -33,6 +34,11 @@ var defaultFileExtensions = []string{
 	".mp4", ".mov", ".mxf",
 	".wav", ".aif",
 	".xmp",
+}
+
+// User represents a named owner that can be assigned to cards.
+type User struct {
+	Name string `yaml:"name" json:"name"`
 }
 
 // CardEntry holds the per-card configuration keyed by filesystem UUID.
@@ -92,6 +98,7 @@ type Config struct {
 	ImportRoot          string               `yaml:"import_root"      json:"import_root"`
 	MinFreeGB           float64              `yaml:"min_free_gb,omitempty" json:"min_free_gb,omitempty"`
 	MirrorRoot          string               `yaml:"mirror_root,omitempty" json:"mirror_root,omitempty"`
+	Users               []User               `yaml:"users,omitempty"  json:"users,omitempty"`
 	Cards               map[string]CardEntry `yaml:"cards"            json:"cards"`
 	FileExtensions      []string             `yaml:"file_extensions"  json:"file_extensions"`
 	LogPath             string               `yaml:"log_path"         json:"log_path"`
@@ -141,6 +148,24 @@ func Load(path string) (*Config, error) {
 	}
 	if err := validateDestTemplates(&cfg); err != nil {
 		return nil, err
+	}
+	if len(cfg.Users) == 0 {
+		seen := make(map[string]bool)
+		for _, entry := range cfg.Cards {
+			if entry.Owner != "" && !seen[entry.Owner] {
+				seen[entry.Owner] = true
+			}
+		}
+		if len(seen) > 0 {
+			names := make([]string, 0, len(seen))
+			for name := range seen {
+				names = append(names, name)
+			}
+			sort.Strings(names)
+			for _, name := range names {
+				cfg.Users = append(cfg.Users, User{Name: name})
+			}
+		}
 	}
 	return &cfg, nil
 }
