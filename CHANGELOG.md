@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.13.16](https://github.com/jmsnll/cardimportd/compare/v0.13.15...v0.13.16) (2026-06-03)
+
+
+### Features
+
+* **notify:** beep Synology hardware buzzer on import start/complete/fail ([ec8dd2e](https://github.com/jmsnll/cardimportd/commit/ec8dd2ec7b9138b3057fae1821ea71996e150e46))
+
 ## [0.13.15](https://github.com/jmsnll/cardimportd/compare/v0.13.14...v0.13.15) (2026-06-03)
 
 
