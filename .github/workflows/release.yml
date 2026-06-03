@@ -9,7 +9,28 @@ permissions:
   contents: write
 
 jobs:
+  build-ui:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+
+      - uses: actions/setup-node@v6
+        with:
+          node-version: '22'
+          cache: 'npm'
+          cache-dependency-path: ui/package-lock.json
+
+      - name: Build UI
+        run: make ui
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: webui-static
+          path: internal/webui/static/
+          if-no-files-found: error
+
   goreleaser:
+    needs: build-ui
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v6
@@ -19,13 +40,12 @@ jobs:
       - uses: actions/setup-go@v6
         with:
           go-version-file: go.mod
+          cache: true
 
-      - uses: actions/setup-node@v6
+      - uses: actions/download-artifact@v4
         with:
-          node-version: '22'
-
-      - name: Build UI
-        run: make ui
+          name: webui-static
+          path: internal/webui/static/
 
       - name: Restore .gitkeep
         run: git checkout internal/webui/static/.gitkeep
@@ -41,6 +61,7 @@ jobs:
     needs: goreleaser
     runs-on: ubuntu-latest
     strategy:
+      fail-fast: false
       matrix:
         include:
           - { syno_arch: x86_64, goarch: amd64 }
@@ -51,6 +72,12 @@ jobs:
       - uses: actions/setup-go@v6
         with:
           go-version-file: go.mod
+          cache: true
+
+      - uses: actions/download-artifact@v4
+        with:
+          name: webui-static
+          path: internal/webui/static/
 
       - name: Derive version
         id: ver
@@ -59,13 +86,6 @@ jobs:
           SEMVER="${TAG#v}"
           echo "semver=${SEMVER}" >> "$GITHUB_OUTPUT"
           echo "spk_version=${SEMVER}-0001" >> "$GITHUB_OUTPUT"
-
-      - uses: actions/setup-node@v6
-        with:
-          node-version: '22'
-
-      - name: Build UI
-        run: make ui
 
       - name: Build binary
         run: |
@@ -94,18 +114,19 @@ jobs:
     needs: spk
     runs-on: ubuntu-latest
     steps:
+      - uses: actions/checkout@v6
+
       - name: Download SPK files
         run: |
           TAG="${GITHUB_REF_NAME}"
           SEMVER="${TAG#v}"
           SPK_VER="${SEMVER}-0001"
           mkdir -p /tmp/pages
-          for ARCH in x86_64 armv8; do
-            curl -fsSL -o "/tmp/pages/cardimportd-${SPK_VER}-${ARCH}.spk" \
-              "https://github.com/jmsnll/cardimportd/releases/download/${TAG}/cardimportd-${SPK_VER}-${ARCH}.spk"
-          done
-
-      - uses: actions/checkout@v6
+          gh release download "${TAG}" \
+            --pattern "*.spk" \
+            --dir /tmp/pages
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Generate packages.json
         run: |
