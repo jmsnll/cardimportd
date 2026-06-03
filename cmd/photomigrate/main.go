@@ -43,7 +43,7 @@ var defaultExts = []string{
 	".rw2",
 	".heic", ".heif",
 	".mp4", ".mov", ".mxf",
-	".wav", ".aif",
+	".wav", ".aif", ".aac",
 }
 
 // sidecarExts are file extensions treated as sidecars: not queued as standalone
