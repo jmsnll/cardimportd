@@ -278,15 +278,15 @@ func handleMount(
 				slog.Warn("new card registered as pending — edit config to activate",
 					"uuid", uuid, "config", cfgPath)
 			}
-			if err := n.Notify(ctx, notify.Event{
-				Kind:      notify.KindNewCardPending,
-				CardUUID:  uuid,
-				MountPath: evt.MountPoint,
-				Time:      time.Now(),
-				Detail:    "edit config to activate",
-			}); err != nil {
-				slog.Warn("notify: delivery failed", "kind", string(notify.KindNewCardPending), "error", err)
-			}
+		}
+		if err := n.Notify(ctx, notify.Event{
+			Kind:      notify.KindNewCardPending,
+			CardUUID:  uuid,
+			MountPath: evt.MountPoint,
+			Time:      time.Now(),
+			Detail:    "edit config to activate",
+		}); err != nil {
+			slog.Warn("notify: delivery failed", "kind", string(notify.KindNewCardPending), "error", err)
 		}
 		return
 	}
