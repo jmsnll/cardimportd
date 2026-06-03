@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.14.1](https://github.com/jmsnll/cardimportd/compare/v0.14.0...v0.14.1) (2026-06-03)
+
+
+### Bug Fixes
+
+* notify on every pending card insertion, not just the first ([5d28f53](https://github.com/jmsnll/cardimportd/commit/5d28f53c95ae01c951101f60cb4d09099a2b7460))
+
 ## [0.14.0](https://github.com/jmsnll/cardimportd/compare/v0.13.16...v0.14.0) (2026-06-03)
 
 
