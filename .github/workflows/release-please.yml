@@ -23,6 +23,11 @@ jobs:
           config-file: release-please-config.json
           manifest-file: .release-please-manifest.json
 
+  # NOTE: This job must not be removed.
+  # GitHub's GITHUB_TOKEN cannot trigger on:release events in other workflows
+  # (security restriction to prevent recursive runs). Dispatching release.yml
+  # explicitly via workflow_dispatch is the only way the release build fires
+  # automatically when release-please merges a release PR.
   trigger-release:
     needs: release-please
     if: ${{ needs.release-please.outputs.release_created == 'true' }}
