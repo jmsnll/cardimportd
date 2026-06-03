@@ -70,6 +70,14 @@ func main() {
 		notifiers = append(notifiers, n)
 		slog.Info("webhook notifications enabled", "url", wh.URL)
 	}
+	if b := initialCfg.Notifications.Beep; b != nil && b.Enabled {
+		device := b.Device
+		if device == "" {
+			device = notify.DefaultBeepDevice
+		}
+		notifiers = append(notifiers, notify.NewBeepNotifier(device))
+		slog.Info("beep notifications enabled", "device", device)
+	}
 	notifier := notify.NewMultiNotifier(notifiers...)
 
 	// mu guards cfg; replaced atomically on config changes.

@@ -77,11 +77,19 @@ type WebhookConfig struct {
 	Events []string `yaml:"events,omitempty" json:"events,omitempty"`
 }
 
+// BeepConfig enables the Synology hardware buzzer via /dev/ttyS1.
+// Short beep on import start/complete; long beep on failure.
+type BeepConfig struct {
+	Enabled bool   `yaml:"enabled"          json:"enabled"`
+	Device  string `yaml:"device,omitempty" json:"device,omitempty"`
+}
+
 // NotificationConfig groups optional push notification adapters.
 type NotificationConfig struct {
 	Pushover *PushoverConfig `yaml:"pushover,omitempty" json:"pushover,omitempty"`
 	Ntfy     *NtfyConfig     `yaml:"ntfy,omitempty"     json:"ntfy,omitempty"`
 	Webhook  *WebhookConfig  `yaml:"webhook,omitempty"  json:"webhook,omitempty"`
+	Beep     *BeepConfig     `yaml:"beep,omitempty"     json:"beep,omitempty"`
 }
 
 // WebUIConfig holds optional settings for the embedded HTTP management server.
