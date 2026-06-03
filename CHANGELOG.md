@@ -1,5 +1,26 @@
 # Changelog
 
+## [0.13.15](https://github.com/jmsnll/cardimportd/compare/v0.13.14...v0.13.15) (2026-06-03)
+
+
+### Features
+
+* **photomigrate:** include .aac files in default extension set ([8c5d38a](https://github.com/jmsnll/cardimportd/commit/8c5d38a2a3749d01ef4dbf3c8d0dcde289120d52))
+* **photomigrate:** skip [@ea](https://github.com/ea)Dir metadata dirs, fix collision race, add progress logging ([0089c3e](https://github.com/jmsnll/cardimportd/commit/0089c3e8b463c55bd7bb9b0bb3a6b922267273f9))
+
+
+### Bug Fixes
+
+* **ci:** bump Go 1.26.4, fix lint config and errcheck failures ([19eb51d](https://github.com/jmsnll/cardimportd/commit/19eb51d11246aba2709ace92848f5ad384c78c9f))
+* **photomigrate:** move XMP sidecars alongside their raw files ([3739e65](https://github.com/jmsnll/cardimportd/commit/3739e654fa9b68993984ed82b32c35828fec5112))
+* **photomigrate:** treat LRF files as sidecars alongside ARW ([e32ebe1](https://github.com/jmsnll/cardimportd/commit/e32ebe135428708a137b14278c6d33f52e83f672))
+
+
+### Performance
+
+* **photomigrate:** more workers by default, narrower resolve mutex ([bc42869](https://github.com/jmsnll/cardimportd/commit/bc428694cc7028cd3ec106ebdc270c37a2a7810d))
+* **photomigrate:** use os.Rename for same-filesystem moves ([03291d2](https://github.com/jmsnll/cardimportd/commit/03291d2bece9085ef1cb1d920b7460148c244604))
+
 ## [0.13.14](https://github.com/jmsnll/cardimportd/compare/v0.13.13...v0.13.14) (2026-06-02)
 
 
