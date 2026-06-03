@@ -1,5 +1,20 @@
 # Changelog
 
+## [0.14.0](https://github.com/jmsnll/cardimportd/compare/v0.13.16...v0.14.0) (2026-06-03)
+
+
+### Features
+
+* **importer:** skip already-imported files via EXIF timestamp cursor ([6ef5407](https://github.com/jmsnll/cardimportd/commit/6ef5407209f6e3b968e5cbadccc33a2bfada0f8c))
+* **ui:** replace Bulma with Tailwind CSS, remove broken History view ([19c0df2](https://github.com/jmsnll/cardimportd/commit/19c0df250aef5a7111ee61a2e99c40ea91de55e0))
+
+
+### Bug Fixes
+
+* **ci:** drop npm cache config, revert govulncheck to manual run ([82d6f2a](https://github.com/jmsnll/cardimportd/commit/82d6f2ae6978f919955b13d92997f0726c5ac992))
+* **ci:** make feat: commits bump minor version (0.x.0) not patch ([4525a70](https://github.com/jmsnll/cardimportd/commit/4525a703e89bcea43b51114c4e8fa4526b4aff35))
+* **ci:** restore trigger-release job in release-please workflow ([dc34866](https://github.com/jmsnll/cardimportd/commit/dc34866e39fbea8b739165d5c2e4c8ae3859ad4b))
+
 ## [0.13.16](https://github.com/jmsnll/cardimportd/compare/v0.13.15...v0.13.16) (2026-06-03)
 
 
