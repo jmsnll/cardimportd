@@ -15,8 +15,6 @@ jobs:
       - uses: actions/setup-node@v6
         with:
           node-version: '22'
-          cache: 'npm'
-          cache-dependency-path: ui/package-lock.json
 
       - name: Build UI
         run: make ui
@@ -52,6 +50,10 @@ jobs:
     steps:
       - uses: actions/checkout@v6
 
-      - uses: golang/govulncheck-action@v1
+      - uses: actions/setup-go@v6
         with:
           go-version-file: go.mod
+          cache: true
+
+      - name: Run govulncheck
+        run: go run golang.org/x/vuln/cmd/govulncheck@latest ./...
