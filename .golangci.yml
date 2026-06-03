@@ -29,9 +29,10 @@ linters:
         - G304
         # G115: integer overflow — all conversions are bounded hardware values
         - G115
-        # G301/G302: 0o755 dirs and 0o644 files are correct for a photo import daemon
+        # G301/G302/G306: 0o755 dirs and 0o644 files are correct for a photo import daemon
         - G301
         - G302
+        - G306
         # G118: context.Background in shutdown goroutine is intentional
         - G118
     gocritic:
@@ -42,12 +43,14 @@ linters:
         # hugeParam: changing Event/ProgressEvent to pointer receivers is a larger refactor
         - hugeParam
 
+  exclusions:
+    rules:
+      # Test files get a lighter touch
+      - path: _test\.go
+        linters:
+          - gosec
+          - errcheck
+          - gocritic
+
 issues:
   max-same-issues: 0
-  exclude-rules:
-    # Test files get a lighter touch
-    - path: _test\.go
-      linters:
-        - gosec
-        - errcheck
-        - gocritic

@@ -54,7 +54,9 @@ func BenchmarkCheckDupNoExist(b *testing.B) {
 	b.ReportAllocs()
 	b.ResetTimer()
 	for b.Loop() {
-		checkDup(src, dst, m)
+		if _, err := checkDup(src, dst, m); err != nil {
+			b.Fatal(err)
+		}
 	}
 }
 
@@ -79,7 +81,7 @@ func BenchmarkAlreadyImported(b *testing.B) {
 			}
 			imp := New(makeConfig(b.TempDir()), &discardNotifier{})
 			// Stamp the card so AlreadyImported takes the full read+compare path.
-			if err := writeStamp(cardDir, "UUID", "James", tc.files, false); err != nil {
+			if err := writeStamp(cardDir, "UUID", "James", tc.files, false, time.Time{}); err != nil {
 				b.Fatal(err)
 			}
 
@@ -108,6 +110,8 @@ func BenchmarkCheckDupSkip(b *testing.B) {
 	b.ReportAllocs()
 	b.ResetTimer()
 	for b.Loop() {
-		checkDup(src, dst, m)
+		if _, err := checkDup(src, dst, m); err != nil {
+			b.Fatal(err)
+		}
 	}
 }

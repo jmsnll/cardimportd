@@ -147,8 +147,12 @@ func TestCheckDup_SkipSameSize(t *testing.T) {
 
 	// Force same mtime so sameSecond returns true via mtime fallback.
 	now := time.Now().Truncate(time.Second)
-	os.Chtimes(src, now, now)
-	os.Chtimes(dst, now, now)
+	if err := os.Chtimes(src, now, now); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.Chtimes(dst, now, now); err != nil {
+		t.Fatal(err)
+	}
 
 	res, err := checkDup(src, dst, meta.Extract(src))
 	if err != nil {
@@ -165,8 +169,12 @@ func TestCheckDup_ReplaceSmallerExisting(t *testing.T) {
 	dst := makeFile(t, dir, "dst.jpg", randomBytes(t, 512))
 
 	now := time.Now().Truncate(time.Second)
-	os.Chtimes(src, now, now)
-	os.Chtimes(dst, now, now)
+	if err := os.Chtimes(src, now, now); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.Chtimes(dst, now, now); err != nil {
+		t.Fatal(err)
+	}
 
 	res, err := checkDup(src, dst, meta.Extract(src))
 	if err != nil {
@@ -185,8 +193,12 @@ func TestCheckDup_RenameWhenTimestampsDiffer(t *testing.T) {
 	// Give src and dst distinct mtimes so sameSecond returns false.
 	past := time.Now().Add(-10 * time.Second).Truncate(time.Second)
 	now := time.Now().Truncate(time.Second)
-	os.Chtimes(dst, past, past)
-	os.Chtimes(src, now, now)
+	if err := os.Chtimes(dst, past, past); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.Chtimes(src, now, now); err != nil {
+		t.Fatal(err)
+	}
 
 	res, err := checkDup(src, dst, meta.Extract(src))
 	if err != nil {
@@ -448,6 +460,41 @@ func TestImport_RatedOnly(t *testing.T) {
 	}
 	if res.Skipped != 1 {
 		t.Errorf("Skipped = %d, want 1 (unrated image)", res.Skipped)
+	}
+}
+
+func TestImport_CursorSkipsOldFiles(t *testing.T) {
+	cardDir := t.TempDir()
+	dstRoot := t.TempDir()
+
+	// Two files from an earlier session — the later one becomes the cursor.
+	makeFile(t, cardDir, "jan.jpg", buildJPEGWithRating("Cam\x00", "2024:01:01 10:00:00\x00", 0))
+	makeFile(t, cardDir, "jun.jpg", buildJPEGWithRating("Cam\x00", "2024:06:01 10:00:00\x00", 0))
+
+	imp := New(makeConfig(dstRoot), &discardNotifier{})
+	res1, err := imp.Import(context.Background(), "James", cardDir, "UUID")
+	if err != nil {
+		t.Fatalf("first Import: %v", err)
+	}
+	if res1.Imported != 2 {
+		t.Fatalf("first run: Imported = %d, want 2", res1.Imported)
+	}
+
+	// New shooting session: add a file with a later EXIF date.
+	makeFile(t, cardDir, "dec.jpg", buildJPEGWithRating("Cam\x00", "2024:12:01 10:00:00\x00", 0))
+
+	res2, err := imp.Import(context.Background(), "James", cardDir, "UUID")
+	if err != nil {
+		t.Fatalf("second Import: %v", err)
+	}
+	// jan.jpg is strictly before the cursor (2024-06) → cursor-skipped, not in Total.
+	// jun.jpg equals the cursor → deduped, counts as Skipped.
+	// dec.jpg is after the cursor → imported.
+	if res2.Total != 2 {
+		t.Errorf("second run Total = %d, want 2 (cursor skips jan.jpg)", res2.Total)
+	}
+	if res2.Imported != 1 {
+		t.Errorf("second run Imported = %d, want 1 (dec.jpg only)", res2.Imported)
 	}
 }
 

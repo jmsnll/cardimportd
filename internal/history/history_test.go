@@ -12,8 +12,12 @@ func TestAppendRecent(t *testing.T) {
 	log := history.New(filepath.Join(t.TempDir(), "h.jsonl"))
 	e1 := history.Entry{UUID: "A", Owner: "James", StartedAt: time.Now(), CompletedAt: time.Now()}
 	e2 := history.Entry{UUID: "B", Owner: "Sophie", StartedAt: time.Now(), CompletedAt: time.Now()}
-	log.Append(e1)
-	log.Append(e2)
+	if err := log.Append(e1); err != nil {
+		t.Fatal(err)
+	}
+	if err := log.Append(e2); err != nil {
+		t.Fatal(err)
+	}
 	entries, err := log.Recent(0)
 	if err != nil {
 		t.Fatalf("Recent: %v", err)
@@ -29,7 +33,9 @@ func TestAppendRecent(t *testing.T) {
 func TestRecent_Limit(t *testing.T) {
 	log := history.New(filepath.Join(t.TempDir(), "h.jsonl"))
 	for i := 0; i < 10; i++ {
-		log.Append(history.Entry{UUID: "X", StartedAt: time.Now(), CompletedAt: time.Now()})
+		if err := log.Append(history.Entry{UUID: "X", StartedAt: time.Now(), CompletedAt: time.Now()}); err != nil {
+			t.Fatal(err)
+		}
 	}
 	entries, _ := log.Recent(3)
 	if len(entries) != 3 {
