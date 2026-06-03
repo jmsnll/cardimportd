@@ -12,11 +12,12 @@ import (
 const stampFileName = ".cardimportd"
 
 type importStamp struct {
-	ImportedAt time.Time `json:"imported_at"`
-	CardUUID   string    `json:"card_uuid"`
-	Owner      string    `json:"owner"`
-	FileCount  int       `json:"file_count"`
-	RatedOnly  bool      `json:"rated_only"`
+	ImportedAt     time.Time `json:"imported_at"`
+	CardUUID       string    `json:"card_uuid"`
+	Owner          string    `json:"owner"`
+	FileCount      int       `json:"file_count"`
+	RatedOnly      bool      `json:"rated_only"`
+	LatestExifTime time.Time `json:"latest_exif_time,omitzero"`
 }
 
 func readStamp(mountPath string) (importStamp, bool) {
@@ -31,13 +32,14 @@ func readStamp(mountPath string) (importStamp, bool) {
 	return s, true
 }
 
-func writeStamp(mountPath, cardUUID, owner string, fileCount int, ratedOnly bool) error {
+func writeStamp(mountPath, cardUUID, owner string, fileCount int, ratedOnly bool, latestExifTime time.Time) error {
 	s := importStamp{
-		ImportedAt: time.Now().UTC(),
-		CardUUID:   cardUUID,
-		Owner:      owner,
-		FileCount:  fileCount,
-		RatedOnly:  ratedOnly,
+		ImportedAt:     time.Now().UTC(),
+		CardUUID:       cardUUID,
+		Owner:          owner,
+		FileCount:      fileCount,
+		RatedOnly:      ratedOnly,
+		LatestExifTime: latestExifTime.UTC(),
 	}
 	data, err := json.Marshal(s)
 	if err != nil {

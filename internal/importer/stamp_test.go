@@ -17,7 +17,8 @@ func TestReadStamp_NotFound(t *testing.T) {
 
 func TestWriteReadStamp_RoundTrip(t *testing.T) {
 	dir := t.TempDir()
-	if err := writeStamp(dir, "TEST-UUID", "James", 42, false); err != nil {
+	exifTime := time.Date(2024, 6, 1, 12, 0, 0, 0, time.UTC)
+	if err := writeStamp(dir, "TEST-UUID", "James", 42, false, exifTime); err != nil {
 		t.Fatalf("writeStamp: %v", err)
 	}
 	s, ok := readStamp(dir)
@@ -38,6 +39,9 @@ func TestWriteReadStamp_RoundTrip(t *testing.T) {
 	}
 	if time.Since(s.ImportedAt) > 5*time.Second {
 		t.Error("ImportedAt is too far in the past")
+	}
+	if !s.LatestExifTime.Equal(exifTime) {
+		t.Errorf("LatestExifTime = %v, want %v", s.LatestExifTime, exifTime)
 	}
 }
 
@@ -110,7 +114,7 @@ func TestAlreadyImported_RatedOnlyMismatch(t *testing.T) {
 	makeFile(t, cardDir, "a.jpg", randomBytes(t, 256))
 
 	// Stamp written with ratedOnly=false.
-	if err := writeStamp(cardDir, "UUID", "James", 1, false); err != nil {
+	if err := writeStamp(cardDir, "UUID", "James", 1, false, time.Time{}); err != nil {
 		t.Fatalf("writeStamp: %v", err)
 	}
 

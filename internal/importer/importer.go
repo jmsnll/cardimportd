@@ -8,6 +8,7 @@ import (
 	"path/filepath"
 	"strings"
 	"text/template"
+	"time"
 
 	"github.com/jmsnll/cardimportd/internal/config"
 	"github.com/jmsnll/cardimportd/internal/meta"
@@ -72,6 +73,13 @@ func (imp *Importer) Import(ctx context.Context, owner, mountPath, cardUUID stri
 		return Result{}, fmt.Errorf("preflight: %w", err)
 	}
 
+	// Read any existing stamp to get the EXIF cursor for incremental imports.
+	// Only use the cursor when rated_only matches — a settings change requires a full walk.
+	var cursor time.Time
+	if stamp, ok := readStamp(mountPath); ok && stamp.RatedOnly == imp.cfg.RatedOnly {
+		cursor = stamp.LatestExifTime
+	}
+
 	cardEntry, _ := imp.cfg.LookupCard(cardUUID)
 	tmplStr := cardEntry.DestinationTemplate
 	if tmplStr == "" {
@@ -90,6 +98,9 @@ func (imp *Importer) Import(ctx context.Context, owner, mountPath, cardUUID stri
 		ext[strings.ToLower(e)] = true
 	}
 
+	var maxExifTime time.Time
+	var cardFileCount int
+
 	err = filepath.WalkDir(mountPath, func(path string, d os.DirEntry, walkErr error) error {
 		if walkErr != nil {
 			slog.Warn("importer: walk error", "path", path, "error", walkErr)
@@ -104,9 +115,22 @@ func (imp *Importer) Import(ctx context.Context, owner, mountPath, cardUUID stri
 		if !ext[strings.ToLower(filepath.Ext(path))] {
 			return nil
 		}
+		cardFileCount++
+
+		m := meta.Extract(path)
+
+		// Skip files whose EXIF time predates the cursor from the previous import.
+		// Files without a usable EXIF time are always processed so nothing is lost.
+		if !cursor.IsZero() && !m.DateTimeOriginal.IsZero() && m.DateTimeOriginal.Before(cursor) {
+			return nil
+		}
+
+		if !m.DateTimeOriginal.IsZero() && m.DateTimeOriginal.After(maxExifTime) {
+			maxExifTime = m.DateTimeOriginal
+		}
 
 		res.Total++
-		n, hash, dstPath, action, mirrFail, err := imp.importFile(ctx, owner, path, cardUUID, destTmpl)
+		n, hash, dstPath, action, mirrFail, err := imp.importFile(ctx, owner, path, cardUUID, destTmpl, m)
 		if err != nil {
 			slog.Error("importer: failed", "src", path, "error", err)
 			res.Failed++
@@ -148,8 +172,13 @@ func (imp *Importer) Import(ctx context.Context, owner, mountPath, cardUUID stri
 		}
 	}
 
+	// Preserve a non-zero cursor across runs even when this run produced nothing new.
+	if maxExifTime.IsZero() {
+		maxExifTime = cursor
+	}
+
 	if err == nil && res.Failed == 0 {
-		if stampErr := writeStamp(mountPath, cardUUID, owner, res.Total, imp.cfg.RatedOnly); stampErr != nil {
+		if stampErr := writeStamp(mountPath, cardUUID, owner, cardFileCount, imp.cfg.RatedOnly, maxExifTime); stampErr != nil {
 			slog.Warn("importer: failed to write stamp", "error", stampErr)
 		}
 	}
@@ -164,9 +193,7 @@ var mediaExts = map[string]bool{
 	".wav": true, ".aif": true,
 }
 
-func (imp *Importer) importFile(ctx context.Context, owner, srcPath, cardUUID string, destTmpl *template.Template) (n int64, hash string, dstPath string, action dupAction, mirrorFailed bool, err error) {
-	m := meta.Extract(srcPath)
-
+func (imp *Importer) importFile(_ context.Context, owner, srcPath, cardUUID string, destTmpl *template.Template, m meta.FileMeta) (n int64, hash string, dstPath string, action dupAction, mirrorFailed bool, err error) {
 	if imp.cfg.RatedOnly && m.Rating == 0 && !mediaExts[strings.ToLower(filepath.Ext(srcPath))] {
 		slog.Debug("importer: skip (no EXIF rating)", "src", srcPath)
 		return 0, "", srcPath, dupSkip, false, nil
