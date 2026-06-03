@@ -1,97 +1,71 @@
 <template>
-  <div ref="rootEl" class="field path-input-wrapper" @keydown.esc="closeDropdown">
-    <label class="label">{{ label }}</label>
-    <div class="field has-addons">
-      <div class="control is-expanded">
-        <input
-          class="input"
-          type="text"
-          :placeholder="placeholder"
-          :value="modelValue"
-          @input="emit('update:modelValue', ($event.target as HTMLInputElement).value)"
-        />
-      </div>
-      <div class="control">
-        <button
-          class="button is-light is-small"
-          type="button"
-          @click="openBrowser"
-        >Browse</button>
-      </div>
+  <div ref="rootEl" class="relative" @keydown.esc="closeDropdown">
+    <label class="block text-sm font-medium text-slate-700 mb-1">{{ label }}</label>
+    <div class="flex gap-2">
+      <input
+        class="flex-1 rounded border border-slate-300 text-sm px-3 py-2 text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-slate-500 focus:border-slate-500"
+        type="text"
+        :placeholder="placeholder"
+        :value="modelValue"
+        @input="emit('update:modelValue', ($event.target as HTMLInputElement).value)"
+      />
+      <button
+        type="button"
+        class="inline-flex items-center rounded px-3 py-2 text-sm font-medium bg-white border border-slate-300 text-slate-700 hover:bg-slate-50 shrink-0"
+        @click="openBrowser"
+      >Browse</button>
     </div>
-    <p v-if="help" class="help">{{ help }}</p>
+    <p v-if="help" class="text-xs text-slate-500 mt-1">{{ help }}</p>
 
-    <div v-if="open" class="dropdown is-active" style="width: 100%">
-      <div class="dropdown-menu" style="width: 100%; min-width: 100%">
-        <div class="dropdown-content">
+    <!-- Dropdown -->
+    <div v-if="open" class="absolute z-50 top-full left-0 right-0 mt-1 bg-white border border-slate-200 rounded-lg shadow-lg overflow-hidden">
+      <!-- Breadcrumb row -->
+      <div class="flex items-center gap-1 px-3 py-2 border-b border-slate-100 bg-slate-50 flex-wrap">
+        <span class="text-xs text-slate-500">Current:</span>
+        <button
+          type="button"
+          class="font-mono text-xs text-slate-700 hover:text-slate-900 truncate max-w-xs"
+          :title="browsePath"
+          @click="selectPath"
+        >{{ browsePath || '/' }}</button>
+        <button
+          v-if="browsePath && browsePath !== '/'"
+          type="button"
+          class="text-xs text-slate-500 hover:text-slate-700 ml-1"
+          title="Go to parent directory"
+          @click="navigateUp"
+        >↑ Up</button>
+      </div>
 
-          <!-- Breadcrumb / current path row -->
-          <div class="dropdown-item path-breadcrumb">
-            <span class="has-text-grey is-size-7">Current: </span>
-            <button
-              class="button is-ghost is-small path-breadcrumb-btn"
-              type="button"
-              :title="browsePath"
-              @click="selectPath"
-            >{{ browsePath || '/' }}</button>
-            <button
-              v-if="browsePath && browsePath !== '/'"
-              class="button is-ghost is-small"
-              type="button"
-              title="Go to parent directory"
-              @click="navigateUp"
-            >&#8593; Up</button>
-          </div>
-
-          <hr class="dropdown-divider" />
-
-          <!-- Error state -->
-          <div v-if="fetchError" class="dropdown-item">
-            <span class="has-text-danger is-size-7">{{ fetchError }}</span>
-          </div>
-
-          <!-- Loading state -->
-          <div v-else-if="loading" class="dropdown-item">
-            <span class="has-text-grey is-size-7">Loading…</span>
-          </div>
-
-          <!-- Empty state -->
-          <div v-else-if="entries.length === 0" class="dropdown-item">
-            <span class="has-text-grey is-size-7">No subdirectories found.</span>
-          </div>
-
-          <!-- Directory list -->
-          <div
-            v-else
-            role="listbox"
-            :aria-label="`Subdirectories of ${browsePath}`"
-          >
-            <a
-              v-for="entry in entries"
-              :key="entry"
-              class="dropdown-item"
-              role="option"
-              href="#"
-              @click.prevent="navigateInto(entry)"
-            >{{ entry }}</a>
-          </div>
-
-          <hr class="dropdown-divider" />
-
-          <!-- Select / cancel actions -->
-          <div class="dropdown-item path-actions">
-            <button
-              class="button is-link is-small"
-              type="button"
-              @click="selectPath"
-            >Select this directory</button>
-            <button
-              class="button is-light is-small"
-              type="button"
-              @click="closeDropdown"
-            >Cancel</button>
-          </div>
+      <!-- Content area (max height, scrollable) -->
+      <div class="max-h-60 overflow-y-auto">
+        <div v-if="fetchError" class="px-3 py-2 text-xs text-red-600">{{ fetchError }}</div>
+        <div v-else-if="loading" class="px-3 py-2 text-xs text-slate-500">Loading…</div>
+        <div v-else-if="entries.length === 0" class="px-3 py-2 text-xs text-slate-500">No subdirectories found.</div>
+        <div v-else role="listbox" :aria-label="`Subdirectories of ${browsePath}`">
+          <a
+            v-for="entry in entries"
+            :key="entry"
+            class="block px-3 py-2 text-sm text-slate-700 hover:bg-slate-50 cursor-pointer"
+            role="option"
+            href="#"
+            @click.prevent="navigateInto(entry)"
+          >{{ entry }}</a>
         </div>
+      </div>
+
+      <!-- Footer actions -->
+      <div class="flex gap-2 px-3 py-2 border-t border-slate-100 bg-slate-50">
+        <button
+          type="button"
+          class="inline-flex items-center rounded px-2.5 py-1 text-xs font-medium bg-slate-900 text-white hover:bg-slate-700"
+          @click="selectPath"
+        >Select this directory</button>
+        <button
+          type="button"
+          class="inline-flex items-center rounded px-2.5 py-1 text-xs font-medium bg-white border border-slate-300 text-slate-700 hover:bg-slate-50"
+          @click="closeDropdown"
+        >Cancel</button>
       </div>
     </div>
   </div>
@@ -177,49 +151,3 @@ onUnmounted(() => {
   document.removeEventListener('click', handleOutsideClick, true)
 })
 </script>
-
-<style scoped>
-.path-input-wrapper {
-  position: relative;
-}
-
-.path-input-wrapper .dropdown {
-  position: absolute;
-  top: 100%;
-  left: 0;
-  z-index: 100;
-}
-
-.path-input-wrapper .dropdown-menu {
-  display: block;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
-}
-
-.path-input-wrapper .dropdown-content {
-  max-height: 280px;
-  overflow-y: auto;
-}
-
-.path-breadcrumb {
-  display: flex;
-  align-items: center;
-  gap: 0.25rem;
-  flex-wrap: wrap;
-}
-
-.path-breadcrumb-btn {
-  font-family: "SF Mono", "Consolas", "Menlo", monospace;
-  font-size: 12px;
-  max-width: 100%;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-  height: auto;
-  padding: 0 0.25rem;
-}
-
-.path-actions {
-  display: flex;
-  gap: 0.5rem;
-}
-</style>

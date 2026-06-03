@@ -1,10 +1,14 @@
 <template>
-  <div class="toast-overlay" aria-live="assertive" aria-atomic="true">
+  <div
+    class="fixed bottom-5 right-5 z-[9999] w-80 pointer-events-none"
+    aria-live="assertive"
+    aria-atomic="true"
+  >
     <Transition name="toast">
       <div
         v-if="visible"
-        class="notification mb-0"
-        :class="type === 'success' ? 'is-success' : 'is-danger'"
+        class="pointer-events-auto rounded-lg shadow-lg px-4 py-3 text-sm font-medium text-white"
+        :class="type === 'success' ? 'bg-emerald-600' : 'bg-red-600'"
         role="alert"
       >{{ message }}</div>
     </Transition>

@@ -1,115 +1,59 @@
 <template>
-  <nav class="navbar is-brand" role="banner" aria-label="Card Importer">
-    <div class="navbar-brand">
-      <span class="navbar-item has-text-weight-semibold">Card Importer</span>
-      <span class="navbar-item is-sub">cardimportd</span>
+  <!-- Header bar -->
+  <header class="bg-slate-900 text-white px-4 h-12 flex items-center justify-between shrink-0">
+    <div class="flex items-center gap-3">
+      <span class="text-sm font-semibold tracking-tight">Card Importer</span>
+      <span class="text-slate-400 text-xs">cardimportd</span>
     </div>
-    <div class="navbar-end" v-if="activeImport" aria-live="polite" aria-label="Import progress">
-      <div class="navbar-item">
-        <span class="tag is-light mr-2" v-if="activeImport.event === 'import_completed'">✓ Done</span>
-        <span class="tag is-warning mr-2" v-else-if="activeImport.event === 'import_failed'">✗ Failed</span>
-        <span class="tag is-info mr-2" v-else>Importing…</span>
-        <span class="is-size-7 has-text-white">
-          <template v-if="activeImport.owner">{{ activeImport.owner }} · </template>
-          {{ activeImport.imported }}/{{ activeImport.total }} files
-        </span>
-      </div>
+    <div v-if="activeImport" class="flex items-center gap-2 text-xs" aria-live="polite" aria-label="Import progress">
+      <span v-if="activeImport.event === 'import_completed'" class="rounded-full px-2 py-0.5 text-xs font-medium bg-emerald-50 text-emerald-700">✓ Done</span>
+      <span v-else-if="activeImport.event === 'import_failed'" class="rounded-full px-2 py-0.5 text-xs font-medium bg-red-100 text-red-700">✗ Failed</span>
+      <span v-else class="rounded-full px-2 py-0.5 text-xs font-medium bg-blue-100 text-blue-700">Importing…</span>
+      <span class="text-slate-300">
+        <template v-if="activeImport.owner">{{ activeImport.owner }} · </template>
+        {{ activeImport.imported }}/{{ activeImport.total }} files
+      </span>
+    </div>
+  </header>
+
+  <!-- Tab navigation -->
+  <nav class="bg-white border-b border-slate-200 px-4" role="tablist" aria-label="Main navigation" @keydown="onTabKeydown">
+    <div class="flex">
+      <a
+        v-for="tab in tabs"
+        :key="tab"
+        :id="`tab-${tab}`"
+        role="tab"
+        :aria-selected="activeTab === tab"
+        :tabindex="activeTab === tab ? 0 : -1"
+        :href="`#panel-${tab}`"
+        :class="[
+          'px-4 py-3 text-sm font-medium border-b-2 -mb-px transition-colors capitalize',
+          activeTab === tab
+            ? 'border-slate-900 text-slate-900'
+            : 'border-transparent text-slate-500 hover:text-slate-700 hover:border-slate-300'
+        ]"
+        @click.prevent="activeTab = tab"
+      >{{ tab === 'notifications' ? 'Notifications' : tab.charAt(0).toUpperCase() + tab.slice(1) }}</a>
     </div>
   </nav>
 
-  <div class="tabs is-brand mb-0" role="tablist" aria-label="Main navigation" @keydown="onTabKeydown">
-    <ul>
-      <li :class="{ 'is-active': activeTab === 'dashboard' }">
-        <a
-          id="tab-dashboard"
-          role="tab"
-          :aria-selected="activeTab === 'dashboard'"
-          :tabindex="activeTab === 'dashboard' ? 0 : -1"
-          href="#panel-dashboard"
-          @click.prevent="activeTab = 'dashboard'"
-        >Dashboard</a>
-      </li>
-      <li :class="{ 'is-active': activeTab === 'cards' }">
-        <a
-          id="tab-cards"
-          role="tab"
-          :aria-selected="activeTab === 'cards'"
-          :tabindex="activeTab === 'cards' ? 0 : -1"
-          href="#panel-cards"
-          @click.prevent="activeTab = 'cards'"
-        >Cards</a>
-      </li>
-      <li :class="{ 'is-active': activeTab === 'history' }">
-        <a
-          id="tab-history"
-          role="tab"
-          :aria-selected="activeTab === 'history'"
-          :tabindex="activeTab === 'history' ? 0 : -1"
-          href="#panel-history"
-          @click.prevent="activeTab = 'history'"
-        >History</a>
-      </li>
-      <li :class="{ 'is-active': activeTab === 'settings' }">
-        <a
-          id="tab-settings"
-          role="tab"
-          :aria-selected="activeTab === 'settings'"
-          :tabindex="activeTab === 'settings' ? 0 : -1"
-          href="#panel-settings"
-          @click.prevent="activeTab = 'settings'"
-        >Settings</a>
-      </li>
-      <li :class="{ 'is-active': activeTab === 'notifications' }">
-        <a
-          id="tab-notifications"
-          role="tab"
-          :aria-selected="activeTab === 'notifications'"
-          :tabindex="activeTab === 'notifications' ? 0 : -1"
-          href="#panel-notifications"
-          @click.prevent="activeTab = 'notifications'"
-        >Notifications</a>
-      </li>
-    </ul>
-  </div>
+  <!-- Main content -->
+  <main class="bg-slate-50 min-h-[calc(100vh-6rem)]">
+    <div class="max-w-5xl mx-auto px-4 py-6">
 
-  <main class="section pt-5">
-    <div class="container">
-      <section
-        id="panel-dashboard"
-        role="tabpanel"
-        aria-labelledby="tab-dashboard"
-        v-show="activeTab === 'dashboard'"
-      >
+      <section id="panel-dashboard" role="tabpanel" aria-labelledby="tab-dashboard" v-show="activeTab === 'dashboard'">
         <DashboardView />
       </section>
 
-      <section
-        id="panel-cards"
-        role="tabpanel"
-        aria-labelledby="tab-cards"
-        v-show="activeTab === 'cards'"
-      >
+      <section id="panel-cards" role="tabpanel" aria-labelledby="tab-cards" v-show="activeTab === 'cards'">
         <CardsView />
       </section>
 
-      <section
-        id="panel-history"
-        role="tabpanel"
-        aria-labelledby="tab-history"
-        v-show="activeTab === 'history'"
-      >
-        <HistoryView />
-      </section>
-
-      <section
-        id="panel-settings"
-        role="tabpanel"
-        aria-labelledby="tab-settings"
-        v-show="activeTab === 'settings'"
-      >
-        <article v-if="configError" class="message is-danger" role="alert">
-          <div class="message-body">Failed to load config: {{ configError }}</div>
-        </article>
+      <section id="panel-settings" role="tabpanel" aria-labelledby="tab-settings" v-show="activeTab === 'settings'">
+        <div v-if="configError" class="rounded bg-red-50 border border-red-200 text-sm text-red-700 p-3" role="alert">
+          Failed to load config: {{ configError }}
+        </div>
         <SettingsView
           v-else-if="config"
           :config="config"
@@ -117,21 +61,17 @@
         />
       </section>
 
-      <section
-        id="panel-notifications"
-        role="tabpanel"
-        aria-labelledby="tab-notifications"
-        v-show="activeTab === 'notifications'"
-      >
-        <article v-if="configError" class="message is-danger" role="alert">
-          <div class="message-body">Failed to load config: {{ configError }}</div>
-        </article>
+      <section id="panel-notifications" role="tabpanel" aria-labelledby="tab-notifications" v-show="activeTab === 'notifications'">
+        <div v-if="configError" class="rounded bg-red-50 border border-red-200 text-sm text-red-700 p-3" role="alert">
+          Failed to load config: {{ configError }}
+        </div>
         <NotificationsView
           v-else-if="config"
           :config="config"
           @update:config="onConfigUpdated"
         />
       </section>
+
     </div>
   </main>
 
@@ -147,15 +87,14 @@ import type { Config } from './types'
 import Toast from './components/Toast.vue'
 import ImportProgress from './components/ImportProgress.vue'
 import CardsView from './views/CardsView.vue'
-import HistoryView from './views/HistoryView.vue'
 import SettingsView from './views/SettingsView.vue'
 import NotificationsView from './views/NotificationsView.vue'
 import DashboardView from './views/DashboardView.vue'
 
 const { activeImport, mountedCards } = useEventStream()
 
-type Tab = 'dashboard' | 'cards' | 'history' | 'settings' | 'notifications'
-const tabs: Tab[] = ['dashboard', 'cards', 'history', 'settings', 'notifications']
+type Tab = 'dashboard' | 'cards' | 'settings' | 'notifications'
+const tabs: Tab[] = ['dashboard', 'cards', 'settings', 'notifications']
 
 const activeTab = ref<Tab>('dashboard')
 const config = ref<Config | null>(null)

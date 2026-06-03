@@ -1,59 +1,14 @@
-@import 'bulma/css/bulma.min.css';
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
 
-/* Brand colour overrides */
-:root {
-  --brand: #1a6aad;
-}
-
-.navbar.is-brand {
-  background-color: var(--brand);
-}
-
-.navbar.is-brand .navbar-item,
-.navbar.is-brand .navbar-brand .navbar-item {
-  color: #fff;
-}
-
-.navbar.is-brand .navbar-item.is-sub {
-  font-size: 0.8rem;
-  color: rgba(255, 255, 255, 0.65);
-}
-
-/* Tabs brand active colour */
-.tabs.is-brand li.is-active a {
-  border-bottom-color: var(--brand);
-  color: var(--brand);
-}
-
-/* UUID monospace */
-.uuid-cell {
-  font-family: "SF Mono", "Consolas", "Menlo", monospace;
-  font-size: 0.8rem;
-  color: #555;
-}
-
-/* Toast — fixed-position overlay (Bulma notification is not fixed by default) */
-.toast-overlay {
-  position: fixed;
-  bottom: 1.5rem;
-  right: 1.5rem;
-  width: 20rem;
-  z-index: 9999;
-  pointer-events: none;
-}
-
-.toast-overlay .notification {
-  pointer-events: auto;
-  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2);
-}
-
+/* Toast slide-in (used by Toast.vue <Transition name="toast">) */
 .toast-enter-active,
 .toast-leave-active {
-  transition: opacity 0.25s ease, transform 0.25s ease;
+  transition: opacity 0.2s ease, transform 0.2s ease;
 }
-
 .toast-enter-from,
 .toast-leave-to {
   opacity: 0;
-  transform: translateX(2rem);
+  transform: translateX(1rem);
 }

@@ -1,149 +1,163 @@
 <template>
   <div>
-    <article v-if="error" class="message is-danger" role="alert">
-      <div class="message-body">Failed to load cards: {{ error }}</div>
-    </article>
-
-    <div v-else-if="loading" class="has-text-centered py-6">
-      <p class="has-text-grey">Loading cards…</p>
+    <!-- Error state -->
+    <div v-if="error" class="rounded bg-red-50 border border-red-200 text-sm text-red-700 p-3 mb-4" role="alert">
+      Failed to load cards: {{ error }}
     </div>
 
+    <!-- Loading state -->
+    <div v-else-if="loading" class="text-sm text-slate-500 py-8 text-center">Loading cards…</div>
+
     <template v-else>
-      <div class="level mb-3">
-        <div class="level-left">
-          <div class="level-item">
-            <p class="has-text-grey is-size-7">{{ Object.keys(cards).length }} card(s) registered</p>
-          </div>
-        </div>
-        <div class="level-right">
-          <div class="level-item">
-            <button class="button is-small" @click="load" :disabled="loading">Refresh</button>
-          </div>
-        </div>
+      <!-- Header row -->
+      <div class="flex items-center justify-between mb-4">
+        <p class="text-sm text-slate-500">{{ Object.keys(cards).length }} card(s) registered</p>
+        <button
+          class="inline-flex items-center rounded px-3 py-1.5 text-sm font-medium bg-white border border-slate-300 text-slate-700 hover:bg-slate-50 disabled:opacity-40"
+          @click="load"
+          :disabled="loading"
+        >Refresh</button>
       </div>
 
-      <div v-if="Object.keys(cards).length === 0" class="has-text-centered py-6">
-        <p class="is-size-1 mb-3" aria-hidden="true">💾</p>
-        <p class="is-size-5 has-text-weight-semibold mb-2">No cards registered</p>
-        <p class="has-text-grey">
-          Insert a card — the daemon will create a pending entry. Refresh to see it.
-        </p>
+      <!-- Empty state -->
+      <div v-if="Object.keys(cards).length === 0" class="text-center py-12">
+        <p class="text-sm font-medium text-slate-900 mb-1">No cards registered</p>
+        <p class="text-sm text-slate-500">Insert a card — the daemon will create a pending entry. Refresh to see it.</p>
       </div>
 
-      <div v-else class="box p-0">
-        <table class="table is-fullwidth is-hoverable is-striped mb-0" aria-label="Registered cards">
+      <!-- Cards table -->
+      <div v-else class="bg-white border border-slate-200 rounded-lg overflow-hidden">
+        <table class="w-full text-sm" aria-label="Registered cards">
           <thead>
-            <tr>
-              <th scope="col">UUID</th>
-              <th scope="col">Owner</th>
-              <th scope="col">Status</th>
-              <th scope="col">First Seen</th>
-              <th scope="col">Last Import</th>
-              <th scope="col"><span class="is-sr-only">Actions</span></th>
+            <tr class="bg-slate-50">
+              <th scope="col" class="px-4 py-2.5 text-left text-xs font-medium text-slate-500 uppercase tracking-wide">UUID</th>
+              <th scope="col" class="px-4 py-2.5 text-left text-xs font-medium text-slate-500 uppercase tracking-wide">Owner</th>
+              <th scope="col" class="px-4 py-2.5 text-left text-xs font-medium text-slate-500 uppercase tracking-wide">Status</th>
+              <th scope="col" class="px-4 py-2.5 text-left text-xs font-medium text-slate-500 uppercase tracking-wide">First Seen</th>
+              <th scope="col" class="px-4 py-2.5 text-left text-xs font-medium text-slate-500 uppercase tracking-wide">Last Import</th>
+              <th scope="col" class="px-4 py-2.5 text-left text-xs font-medium text-slate-500 uppercase tracking-wide"><span class="sr-only">Actions</span></th>
             </tr>
           </thead>
-          <tbody>
-            <tr v-for="(entry, uuid) in cards" :key="uuid">
-              <td class="uuid-cell">{{ uuid }}</td>
+          <tbody class="divide-y divide-slate-100">
+            <tr v-for="(entry, uuid) in cards" :key="uuid" class="hover:bg-slate-50">
+              <!-- UUID -->
+              <td class="px-4 py-3 font-mono text-xs text-slate-600">{{ uuid }}</td>
 
-              <td>
+              <!-- Owner (normal / edit) -->
+              <td class="px-4 py-3 text-slate-700">
                 <template v-if="editingUuid === uuid">
-                  <div class="control">
-                    <div v-if="users.length > 0" class="select is-small is-fullwidth">
-                      <select v-model="editOwner" :aria-label="`Owner for card ${uuid}`">
-                        <option value="">— select owner —</option>
-                        <option v-for="u in users" :key="u.name" :value="u.name">{{ u.name }}</option>
-                      </select>
-                    </div>
-                    <input
-                      v-else
-                      v-model="editOwner"
-                      class="input is-small"
-                      type="text"
-                      placeholder="Owner name"
-                      :aria-label="`Owner name for card ${uuid}`"
-                      :ref="(el) => { if (el) editInputs[String(uuid)] = el as HTMLInputElement }"
-                    />
-                  </div>
-                  <div class="control mt-1">
-                    <input
-                      v-model="editLabel"
-                      class="input is-small"
-                      type="text"
-                      placeholder="Label (optional)"
-                      :aria-label="`Label for card ${uuid}`"
-                    />
-                  </div>
-                  <div class="control mt-1">
-                    <input
-                      v-model="editDestTemplate"
-                      class="input is-small"
-                      type="text"
-                      placeholder="Destination template (optional)"
-                      :aria-label="`Destination template for card ${uuid}`"
-                    />
-                  </div>
+                  <select
+                    v-if="users.length > 0"
+                    v-model="editOwner"
+                    class="block w-full rounded border border-slate-300 text-sm px-2 py-1.5 text-slate-900 focus:outline-none focus:ring-2 focus:ring-slate-500 mb-1.5"
+                    :aria-label="`Owner for card ${uuid}`"
+                  >
+                    <option value="">— select owner —</option>
+                    <option v-for="u in users" :key="u.name" :value="u.name">{{ u.name }}</option>
+                  </select>
+                  <input
+                    v-else
+                    v-model="editOwner"
+                    class="block w-full rounded border border-slate-300 text-sm px-2 py-1.5 text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-slate-500 mb-1.5"
+                    type="text"
+                    placeholder="Owner name"
+                    :aria-label="`Owner name for card ${uuid}`"
+                    :ref="(el) => { if (el) editInputs[String(uuid)] = el as HTMLInputElement }"
+                  />
+                  <input
+                    v-model="editLabel"
+                    class="block w-full rounded border border-slate-300 text-sm px-2 py-1.5 text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-slate-500 mb-1.5"
+                    type="text"
+                    placeholder="Label (optional)"
+                    :aria-label="`Label for card ${uuid}`"
+                  />
+                  <input
+                    v-model="editDestTemplate"
+                    class="block w-full rounded border border-slate-300 text-sm px-2 py-1.5 text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-slate-500 mb-1.5"
+                    type="text"
+                    placeholder="Destination template (optional)"
+                    :aria-label="`Destination template for card ${uuid}`"
+                  />
                 </template>
                 <template v-else>
-                  <span v-if="!entry.owner" class="has-text-grey-light is-italic">unset</span>
+                  <span v-if="!entry.owner" class="italic text-slate-400">unset</span>
                   <span v-else>{{ entry.owner }}</span>
                   <br v-if="entry.label" />
-                  <small v-if="entry.label" class="has-text-grey">{{ entry.label }}</small>
+                  <small v-if="entry.label" class="text-slate-500">{{ entry.label }}</small>
                 </template>
               </td>
 
-              <td>
+              <!-- Status badges -->
+              <td class="px-4 py-3 text-slate-700">
                 <span
-                  class="tag"
-                  :class="entry.status === 'active' ? 'is-success' : 'is-warning'"
+                  v-if="entry.status === 'active'"
+                  class="rounded-full px-2 py-0.5 text-xs font-medium bg-emerald-50 text-emerald-700 ring-1 ring-inset ring-emerald-600/20"
                 >{{ entry.status }}</span>
-                <span v-if="mountedUuids.has(String(uuid))" class="tag is-info is-light ml-1" title="Currently inserted">Mounted</span>
+                <span
+                  v-else
+                  class="rounded-full px-2 py-0.5 text-xs font-medium bg-amber-50 text-amber-700 ring-1 ring-inset ring-amber-600/20"
+                >{{ entry.status }}</span>
+                <span
+                  v-if="mountedUuids.has(String(uuid))"
+                  class="ml-1.5 rounded-full px-2 py-0.5 text-xs font-medium bg-blue-50 text-blue-700 ring-1 ring-inset ring-blue-600/20"
+                  title="Currently inserted"
+                >Mounted</span>
               </td>
 
-              <td>{{ entry.first_seen ? new Date(entry.first_seen).toLocaleString() : '—' }}</td>
+              <!-- First Seen -->
+              <td class="px-4 py-3 text-slate-700">{{ entry.first_seen ? new Date(entry.first_seen).toLocaleString() : '—' }}</td>
 
-              <td class="is-size-7 has-text-grey">
+              <!-- Last Import -->
+              <td class="px-4 py-3 text-slate-700">
                 {{ lastImport[String(uuid)] ? new Date(lastImport[String(uuid)]).toLocaleString() : '—' }}
               </td>
 
-              <td>
-                <div class="buttons are-small is-right">
+              <!-- Actions -->
+              <td class="px-4 py-3 text-right">
+                <div class="flex items-center justify-end gap-2">
                   <template v-if="editingUuid === uuid">
-                    <button class="button is-success is-small" @click="saveCard(String(uuid), 'active')">Activate</button>
-                    <button class="button is-light is-small" @click="saveCard(String(uuid), 'pending')">Keep Pending</button>
-                    <button class="button is-light is-small" @click="cancelEdit">Cancel</button>
+                    <button
+                      class="inline-flex items-center rounded px-3 py-1.5 text-sm font-medium bg-slate-900 text-white hover:bg-slate-700 disabled:opacity-40"
+                      @click="saveCard(String(uuid), 'active')"
+                    >Activate</button>
+                    <button
+                      class="inline-flex items-center rounded px-3 py-1.5 text-sm font-medium bg-amber-50 text-amber-700 border border-amber-200 hover:bg-amber-100"
+                      @click="saveCard(String(uuid), 'pending')"
+                    >Keep Pending</button>
+                    <button
+                      class="inline-flex items-center rounded px-3 py-1.5 text-sm font-medium bg-white border border-slate-300 text-slate-700 hover:bg-slate-50 disabled:opacity-40"
+                      @click="cancelEdit"
+                    >Cancel</button>
                   </template>
                   <template v-else>
                     <button
                       v-if="entry.status === 'pending'"
-                      class="button is-warning is-small"
+                      class="inline-flex items-center rounded px-3 py-1.5 text-sm font-medium bg-amber-50 text-amber-700 border border-amber-200 hover:bg-amber-100"
                       @click="activatingUuid = String(uuid)"
                       :aria-label="`Register card ${uuid}`"
                     >Register</button>
                     <button
                       v-if="mountedUuids.has(String(uuid))"
-                      class="button is-info is-light is-small"
+                      class="inline-flex items-center rounded px-3 py-1.5 text-sm font-medium bg-white border border-slate-300 text-slate-700 hover:bg-slate-50 disabled:opacity-40"
                       @click="runPreflight(String(uuid))"
                       :disabled="preflightLoading.has(String(uuid))"
-                    >
-                      {{ preflightLoading.has(String(uuid)) ? 'Scanning…' : 'Preflight' }}
-                    </button>
+                    >{{ preflightLoading.has(String(uuid)) ? 'Scanning…' : 'Preflight' }}</button>
                     <button
-                      class="button is-light is-small"
+                      class="inline-flex items-center rounded px-3 py-1.5 text-sm font-medium bg-white border border-slate-300 text-slate-700 hover:bg-slate-50 disabled:opacity-40"
                       @click="startEdit(String(uuid), entry.owner, entry.label ?? '', entry.destination_template ?? '')"
                       :aria-label="`Edit card ${uuid}`"
                     >Edit</button>
                     <button
-                      class="button is-danger is-light is-small"
+                      class="inline-flex items-center rounded px-2 py-1 text-xs font-medium text-red-600 hover:text-red-700"
                       @click="removeCard(String(uuid))"
                       :aria-label="`Remove card ${uuid}`"
                     >Remove</button>
                   </template>
                 </div>
-                <div v-if="preflightResults[String(uuid)]" class="is-size-7 mt-1 has-text-info">
+                <p v-if="preflightResults[String(uuid)]" class="text-xs text-slate-500 mt-1 text-right">
                   {{ preflightResults[String(uuid)].total_on_card }} files on card
                   · {{ preflightResults[String(uuid)].to_import }} to import
-                </div>
+                </p>
               </td>
             </tr>
           </tbody>

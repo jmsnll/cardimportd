@@ -1,46 +1,75 @@
 <template>
-  <div class="modal is-active" role="dialog" aria-modal="true" :aria-label="`Register card ${uuid}`">
-    <div class="modal-background" @click="$emit('cancel')"></div>
-    <div class="modal-card">
-      <header class="modal-card-head">
-        <p class="modal-card-title">Register Card</p>
-        <button class="delete" aria-label="close" @click="$emit('cancel')"></button>
-      </header>
-      <section class="modal-card-body">
-        <p class="has-text-grey is-size-7 mb-4">UUID: <code>{{ uuid }}</code></p>
+  <div
+    class="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4"
+    role="dialog"
+    aria-modal="true"
+    :aria-label="`Register card ${uuid}`"
+  >
+    <div class="bg-white rounded-lg shadow-xl w-full max-w-md">
+      <!-- Header -->
+      <div class="flex items-center justify-between px-6 py-4 border-b border-slate-200">
+        <h2 class="text-sm font-semibold text-slate-900">Register Card</h2>
+        <button
+          class="text-slate-400 hover:text-slate-600 text-xl leading-none"
+          aria-label="close"
+          @click="$emit('cancel')"
+        >×</button>
+      </div>
 
-        <div class="field">
-          <label class="label">Owner</label>
-          <div class="control">
-            <div v-if="users.length > 0" class="select is-fullwidth">
-              <select v-model="owner" aria-label="Select owner">
-                <option value="">— select a person —</option>
-                <option v-for="u in users" :key="u.name" :value="u.name">{{ u.name }}</option>
-              </select>
-            </div>
-            <input v-else class="input" type="text" placeholder="Owner name" v-model="owner" />
-          </div>
-          <p v-if="users.length > 0" class="help">Add people in Settings → People to populate this list.</p>
+      <!-- Body -->
+      <div class="px-6 py-5 space-y-4">
+        <p class="text-xs text-slate-500">UUID: <code class="font-mono bg-slate-100 px-1 py-0.5 rounded">{{ uuid }}</code></p>
+
+        <div>
+          <label class="block text-sm font-medium text-slate-700 mb-1">Owner</label>
+          <select
+            v-if="users.length > 0"
+            v-model="owner"
+            aria-label="Select owner"
+            class="block w-full rounded border border-slate-300 text-sm px-3 py-2 text-slate-900 focus:outline-none focus:ring-2 focus:ring-slate-500 cursor-pointer"
+          >
+            <option value="">— select a person —</option>
+            <option v-for="u in users" :key="u.name" :value="u.name">{{ u.name }}</option>
+          </select>
+          <input
+            v-else
+            class="block w-full rounded border border-slate-300 text-sm px-3 py-2 text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-slate-500"
+            type="text"
+            placeholder="Owner name"
+            v-model="owner"
+          />
+          <p v-if="users.length > 0" class="text-xs text-slate-500 mt-1">Add people in Settings → People to populate this list.</p>
         </div>
 
-        <div class="field">
-          <label class="label">Label <span class="has-text-grey has-text-weight-normal">(optional)</span></label>
-          <div class="control">
-            <input class="input" type="text" placeholder="e.g. X-T5 Main Card" v-model="label" />
-          </div>
+        <div>
+          <label class="block text-sm font-medium text-slate-700 mb-1">
+            Label <span class="font-normal text-slate-400">(optional)</span>
+          </label>
+          <input
+            class="block w-full rounded border border-slate-300 text-sm px-3 py-2 text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-slate-500"
+            type="text"
+            placeholder="e.g. X-T5 Main Card"
+            v-model="label"
+          />
         </div>
-      </section>
-      <footer class="modal-card-foot">
-        <div class="buttons">
-          <button
-            class="button is-success"
-            @click="confirm"
-            :disabled="!owner.trim()"
-          >Activate &amp; Import</button>
-          <button class="button is-warning is-light" @click="confirmPending">Keep Pending</button>
-          <button class="button is-light" @click="$emit('cancel')">Cancel</button>
-        </div>
-      </footer>
+      </div>
+
+      <!-- Footer -->
+      <div class="flex gap-2 px-6 py-4 border-t border-slate-200 bg-slate-50 rounded-b-lg">
+        <button
+          class="inline-flex items-center rounded px-3 py-1.5 text-sm font-medium bg-slate-900 text-white hover:bg-slate-700 disabled:opacity-40"
+          @click="confirm"
+          :disabled="!owner.trim()"
+        >Activate &amp; Import</button>
+        <button
+          class="inline-flex items-center rounded px-3 py-1.5 text-sm font-medium bg-amber-50 text-amber-700 border border-amber-200 hover:bg-amber-100"
+          @click="confirmPending"
+        >Keep Pending</button>
+        <button
+          class="inline-flex items-center rounded px-3 py-1.5 text-sm font-medium bg-white border border-slate-300 text-slate-700 hover:bg-slate-50"
+          @click="$emit('cancel')"
+        >Cancel</button>
+      </div>
     </div>
   </div>
 </template>

@@ -1,252 +1,282 @@
 <template>
-  <div class="box">
-    <h2 class="title is-5 mb-4">General</h2>
+  <!-- General -->
+  <div class="bg-white border border-slate-200 rounded-lg p-6 mb-4">
+    <h2 class="text-sm font-semibold text-slate-900 mb-4">General</h2>
 
-    <fieldset>
-      <legend class="is-sr-only">General settings</legend>
-
+    <div class="mb-5">
       <PathInput
         v-model="importRoot"
         label="Import root"
         placeholder="/volume1/photos"
         help="Base directory where imported files are written."
       />
+    </div>
 
-      <div class="field">
-        <label class="label">Watch paths</label>
-        <p class="help mb-2">
-          Mount-point prefixes the daemon monitors for USB card readers
-          (e.g. <code>/volumeUSB1/usbshare</code>). One entry per USB port.
-        </p>
-        <TagInput v-model="watchPaths" />
-      </div>
+    <div class="mb-5">
+      <label class="block text-sm font-medium text-slate-700 mb-1">Watch paths</label>
+      <p class="text-xs text-slate-500 mb-1">
+        Mount-point prefixes the daemon monitors for USB card readers
+        (e.g. <code class="font-mono text-xs bg-slate-100 px-1 py-0.5 rounded text-slate-700">/volumeUSB1/usbshare</code>). One entry per USB port.
+      </p>
+      <TagInput v-model="watchPaths" />
+    </div>
 
-      <div class="field">
-        <label class="label" for="s-extensions">File extensions</label>
-        <div class="control">
-          <textarea
-            id="s-extensions"
-            class="textarea"
-            rows="4"
-            v-model="extensionsText"
-            placeholder=".jpg&#10;.raf&#10;.arw&#10;.mp4"
-          ></textarea>
-        </div>
-        <p class="help">One extension per line, e.g. <code>.jpg</code> <code>.raf</code> <code>.arw</code></p>
-      </div>
+    <div class="mb-5">
+      <label class="block text-sm font-medium text-slate-700 mb-1" for="s-extensions">File extensions</label>
+      <textarea
+        id="s-extensions"
+        class="block w-full rounded border border-slate-300 text-sm px-3 py-2 text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-slate-500 focus:border-slate-500 resize-y"
+        rows="4"
+        v-model="extensionsText"
+        placeholder=".jpg&#10;.raf&#10;.arw&#10;.mp4"
+      ></textarea>
+      <p class="text-xs text-slate-500 mt-1">
+        One extension per line, e.g.
+        <code class="font-mono text-xs bg-slate-100 px-1 py-0.5 rounded text-slate-700">.jpg</code>
+        <code class="font-mono text-xs bg-slate-100 px-1 py-0.5 rounded text-slate-700">.raf</code>
+        <code class="font-mono text-xs bg-slate-100 px-1 py-0.5 rounded text-slate-700">.arw</code>
+      </p>
+    </div>
 
+    <div class="mb-5">
       <PathInput
         v-model="logPath"
         label="Log path"
         placeholder="/var/log/cardimportd.log"
       />
+    </div>
 
+    <div class="mb-5">
       <PathInput
         v-model="mirrorRoot"
         label="Mirror root"
         placeholder="/volume2/photos-mirror"
         help="Optional second directory where files are also written (mirroring)."
       />
+    </div>
 
-      <div class="field">
-        <label class="label" for="s-min-free-gb">Minimum free space (GB)</label>
-        <div class="control">
-          <input
-            id="s-min-free-gb"
-            class="input"
-            type="number"
-            step="0.1"
-            min="0"
-            v-model.number="minFreeGB"
-          />
-        </div>
-        <p class="help">Import is skipped if free space falls below this threshold. Set to 0 to disable.</p>
-      </div>
+    <div class="mb-5">
+      <label class="block text-sm font-medium text-slate-700 mb-1" for="s-min-free-gb">Minimum free space (GB)</label>
+      <input
+        id="s-min-free-gb"
+        class="block w-full rounded border border-slate-300 text-sm px-3 py-2 text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-slate-500 focus:border-slate-500"
+        type="number"
+        step="0.1"
+        min="0"
+        v-model.number="minFreeGB"
+      />
+      <p class="text-xs text-slate-500 mt-1">Import is skipped if free space falls below this threshold. Set to 0 to disable.</p>
+    </div>
 
-      <div class="field">
-        <label class="label" for="s-post-import-hook">Post-import hook</label>
-        <div class="control">
-          <input
-            id="s-post-import-hook"
-            class="input"
-            type="text"
-            placeholder="/usr/local/bin/notify.sh"
-            v-model="postImportHook"
-          />
-        </div>
-        <p class="help">Script executed after each successful import. Receives card UUID and import path as arguments.</p>
-      </div>
+    <div class="mb-5">
+      <label class="block text-sm font-medium text-slate-700 mb-1" for="s-post-import-hook">Post-import hook</label>
+      <input
+        id="s-post-import-hook"
+        class="block w-full rounded border border-slate-300 text-sm px-3 py-2 text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-slate-500 focus:border-slate-500"
+        type="text"
+        placeholder="/usr/local/bin/notify.sh"
+        v-model="postImportHook"
+      />
+      <p class="text-xs text-slate-500 mt-1">Script executed after each successful import. Receives card UUID and import path as arguments.</p>
+    </div>
 
-      <div class="field">
-        <label class="label">Write manifest</label>
-        <div class="control">
-          <label class="checkbox"><input type="checkbox" v-model="writeManifest" /> Write manifest</label>
-        </div>
-        <p class="help">Write a manifest.json file in each import directory listing copied files.</p>
-      </div>
+    <div class="mb-5">
+      <label class="block text-sm font-medium text-slate-700 mb-1">Write manifest</label>
+      <label class="inline-flex items-center text-sm text-slate-700">
+        <input type="checkbox" class="rounded border-slate-300 text-slate-900 focus:ring-slate-500 mr-2 align-middle" v-model="writeManifest" />
+        Write manifest
+      </label>
+      <p class="text-xs text-slate-500 mt-1">Write a manifest.json file in each import directory listing copied files.</p>
+    </div>
 
-      <div class="field">
-        <label class="label" for="s-destination-template">Destination template</label>
-        <div class="control">
-          <input
-            id="s-destination-template"
-            class="input"
-            type="text"
-            placeholder="{{ .Owner }}/{{ .Year }}/{{ .Month }}/{{ .Day }}"
-            v-model="destinationTemplate"
-          />
-        </div>
-        <p class="help">Available variables: .Owner .Year .Month .Day .CameraModel .CardUUID</p>
-      </div>
-    </fieldset>
+    <div class="mb-5">
+      <label class="block text-sm font-medium text-slate-700 mb-1" for="s-destination-template">Destination template</label>
+      <input
+        id="s-destination-template"
+        class="block w-full rounded border border-slate-300 text-sm px-3 py-2 text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-slate-500 focus:border-slate-500"
+        type="text"
+        placeholder="{{ .Owner }}/{{ .Year }}/{{ .Month }}/{{ .Day }}"
+        v-model="destinationTemplate"
+      />
+      <p class="text-xs text-slate-500 mt-1">Available variables: .Owner .Year .Month .Day .CameraModel .CardUUID</p>
+    </div>
 
-    <div class="field is-grouped mt-5">
-      <div class="control">
-        <button class="button is-link" @click="save">Save settings</button>
-      </div>
+    <div class="mt-5">
+      <button class="inline-flex items-center rounded px-3 py-1.5 text-sm font-medium bg-slate-900 text-white hover:bg-slate-700 disabled:opacity-40" @click="save">
+        Save settings
+      </button>
     </div>
   </div>
 
-  <div class="box mt-4">
-    <div class="level mb-3">
-      <div class="level-left">
-        <div class="level-item"><h2 class="title is-5 mb-0">People</h2></div>
-      </div>
-      <div class="level-right">
-        <div class="level-item">
-          <button class="button is-small is-link" @click="showAddUser = true" v-if="!showAddUser">Add person</button>
-        </div>
-      </div>
+  <!-- People -->
+  <div class="bg-white border border-slate-200 rounded-lg p-6 mb-4">
+    <div class="flex items-center justify-between mb-4">
+      <h2 class="text-sm font-semibold text-slate-900">People</h2>
+      <button
+        v-if="!showAddUser"
+        class="inline-flex items-center rounded px-2 py-1 text-xs font-medium bg-slate-900 text-white hover:bg-slate-700 disabled:opacity-40"
+        @click="showAddUser = true"
+      >
+        Add person
+      </button>
     </div>
 
-    <div v-if="showAddUser" class="field has-addons mb-3">
-      <div class="control is-expanded">
-        <input class="input is-small" type="text" placeholder="Name" v-model="newUserName" @keyup.enter="addUser" />
-      </div>
-      <div class="control">
-        <button class="button is-small is-link" @click="addUser" :disabled="!newUserName.trim()">Add</button>
-      </div>
-      <div class="control">
-        <button class="button is-small is-light" @click="showAddUser = false; newUserName = ''">Cancel</button>
-      </div>
+    <div v-if="showAddUser" class="flex gap-2 mb-4">
+      <input
+        class="flex-1 block rounded border border-slate-300 text-sm px-3 py-2 text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-slate-500 focus:border-slate-500"
+        type="text"
+        placeholder="Name"
+        v-model="newUserName"
+        @keyup.enter="addUser"
+      />
+      <button
+        class="inline-flex items-center rounded px-3 py-1.5 text-sm font-medium bg-slate-900 text-white hover:bg-slate-700 disabled:opacity-40"
+        @click="addUser"
+        :disabled="!newUserName.trim()"
+      >
+        Add
+      </button>
+      <button
+        class="inline-flex items-center rounded px-3 py-1.5 text-sm font-medium bg-white border border-slate-300 text-slate-700 hover:bg-slate-50 disabled:opacity-40"
+        @click="showAddUser = false; newUserName = ''"
+      >
+        Cancel
+      </button>
     </div>
 
-    <div v-if="usersLoading" class="has-text-grey is-size-7 py-3">Loading…</div>
-    <div v-else-if="users.length === 0" class="has-text-grey is-size-7 py-3">
+    <div v-if="usersLoading" class="text-xs text-slate-500 py-3">Loading…</div>
+    <div v-else-if="users.length === 0" class="text-xs text-slate-500 py-3">
       No people registered yet. People registered here can be selected from a dropdown when assigning cards.
     </div>
-    <table v-else class="table is-fullwidth is-narrow mb-0">
+    <table v-else class="w-full">
       <thead>
         <tr>
-          <th>Name</th>
-          <th>Destination template override</th>
-          <th></th>
+          <th class="px-4 py-2 text-left text-xs font-medium text-slate-500 uppercase tracking-wide bg-slate-50">Name</th>
+          <th class="px-4 py-2 text-left text-xs font-medium text-slate-500 uppercase tracking-wide bg-slate-50">Destination template override</th>
+          <th class="px-4 py-2 bg-slate-50"></th>
         </tr>
       </thead>
-      <tbody>
+      <tbody class="divide-y divide-slate-100">
         <tr v-for="user in users" :key="user.name">
-          <td>
-            <input v-if="editingUser === user.name" class="input is-small" v-model="editUserName" />
+          <td class="px-4 py-3 text-sm text-slate-700">
+            <input
+              v-if="editingUser === user.name"
+              class="block w-full rounded border border-slate-300 text-sm px-3 py-2 text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-slate-500 focus:border-slate-500"
+              v-model="editUserName"
+            />
             <span v-else>{{ user.name }}</span>
           </td>
-          <td>
-            <input v-if="editingUser === user.name" class="input is-small" v-model="editUserTemplate" placeholder="{{ .Owner }}/{{ .Year }}/…" />
-            <span v-else class="has-text-grey is-size-7">{{ user.destination_template || '—' }}</span>
+          <td class="px-4 py-3 text-sm text-slate-700">
+            <input
+              v-if="editingUser === user.name"
+              class="block w-full rounded border border-slate-300 text-sm px-3 py-2 text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-slate-500 focus:border-slate-500"
+              v-model="editUserTemplate"
+              placeholder="{{ .Owner }}/{{ .Year }}/…"
+            />
+            <span v-else class="text-xs text-slate-500">{{ user.destination_template || '—' }}</span>
           </td>
-          <td class="is-narrow">
-            <div class="buttons are-small is-right">
-              <template v-if="editingUser === user.name">
-                <button class="button is-success is-small" @click="saveUser(user.name)">Save</button>
-                <button class="button is-light is-small" @click="editingUser = null">Cancel</button>
-              </template>
-              <template v-else>
-                <button class="button is-light is-small" @click="startEditUser(user)">Edit</button>
-                <button class="button is-danger is-light is-small" @click="removeUser(user.name)">Remove</button>
-              </template>
-            </div>
+          <td class="px-4 py-3 text-sm text-slate-700 whitespace-nowrap text-right">
+            <template v-if="editingUser === user.name">
+              <button class="inline-flex items-center rounded px-2 py-1 text-xs font-medium bg-slate-900 text-white hover:bg-slate-700 disabled:opacity-40 mr-1" @click="saveUser(user.name)">Save</button>
+              <button class="inline-flex items-center rounded px-2 py-1 text-xs font-medium bg-white border border-slate-300 text-slate-700 hover:bg-slate-50 disabled:opacity-40" @click="editingUser = null">Cancel</button>
+            </template>
+            <template v-else>
+              <button class="inline-flex items-center rounded px-2 py-1 text-xs font-medium bg-white border border-slate-300 text-slate-700 hover:bg-slate-50 disabled:opacity-40 mr-1" @click="startEditUser(user)">Edit</button>
+              <button class="inline-flex items-center text-sm text-red-600 hover:text-red-700" @click="removeUser(user.name)">Remove</button>
+            </template>
           </td>
         </tr>
       </tbody>
     </table>
   </div>
 
-  <div class="box mt-4">
-    <h2 class="title is-5 mb-2">Template Builder</h2>
-    <p class="is-size-7 has-text-grey mb-3">
+  <!-- Template Builder -->
+  <div class="bg-white border border-slate-200 rounded-lg p-6 mb-4">
+    <h2 class="text-sm font-semibold text-slate-900 mb-4">Template Builder</h2>
+    <p class="text-xs text-slate-500 mb-4">
       Build a destination template by clicking variable chips below. The template controls where imported files are placed under the import root.
     </p>
 
-    <div class="field">
-      <label class="label is-small">Template</label>
-      <div class="field has-addons">
-        <div class="control is-expanded">
-          <input
-            id="tb-template"
-            class="input is-small"
-            type="text"
-            placeholder="{{ .Owner }}/{{ .Year }}/{{ .Month }}/{{ .Day }}"
-            v-model="tbTemplate"
-          />
-        </div>
-        <div class="control">
-          <button class="button is-small is-light" @click="tbTemplate = ''" :disabled="!tbTemplate">Clear</button>
-        </div>
+    <div class="mb-5">
+      <label class="block text-sm font-medium text-slate-700 mb-1" for="tb-template">Template</label>
+      <div class="flex gap-2">
+        <input
+          id="tb-template"
+          class="flex-1 block rounded border border-slate-300 text-sm px-3 py-2 text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-slate-500 focus:border-slate-500"
+          type="text"
+          placeholder="{{ .Owner }}/{{ .Year }}/{{ .Month }}/{{ .Day }}"
+          v-model="tbTemplate"
+        />
+        <button
+          class="inline-flex items-center rounded px-3 py-1.5 text-sm font-medium bg-white border border-slate-300 text-slate-700 hover:bg-slate-50 disabled:opacity-40"
+          @click="tbTemplate = ''"
+          :disabled="!tbTemplate"
+        >
+          Clear
+        </button>
       </div>
     </div>
 
-    <div class="field">
-      <label class="label is-small">Variables</label>
-      <div class="tags">
+    <div class="mb-5">
+      <label class="block text-sm font-medium text-slate-700 mb-1">Variables</label>
+      <div class="flex flex-wrap gap-1 mb-1">
         <span
           v-for="v in templateVars"
           :key="v.token"
-          class="tag is-link is-light is-clickable"
+          class="inline-flex cursor-pointer rounded-full px-2.5 py-0.5 text-xs font-medium bg-slate-100 text-slate-700 hover:bg-slate-200 border border-slate-200 mr-1 mb-1"
           @click="insertTemplateVar(v.token)"
           :title="v.description"
         >{{ v.token }}</span>
       </div>
-      <p class="help">Click a variable to append it to the template.</p>
+      <p class="text-xs text-slate-500 mt-1">Click a variable to append it to the template.</p>
     </div>
 
-    <div class="field" v-if="tbTemplate">
-      <label class="label is-small">Preview</label>
-      <div class="notification is-light py-2 px-3 mb-0 is-size-7 has-text-weight-semibold" style="font-family: monospace">
-        {{ tbPreview }}
-      </div>
-      <p class="help">Example render using placeholder values.</p>
+    <div class="mb-5" v-if="tbTemplate">
+      <label class="block text-sm font-medium text-slate-700 mb-1">Preview</label>
+      <div class="font-mono text-sm bg-slate-50 border border-slate-200 rounded px-3 py-2 text-slate-700">{{ tbPreview }}</div>
+      <p class="text-xs text-slate-500 mt-1">Example render using placeholder values.</p>
     </div>
 
-    <div class="field is-grouped mt-4">
-      <div class="control">
-        <button class="button is-small is-link" @click="applyTemplate" :disabled="!tbTemplate">
-          Apply to global template
-        </button>
-      </div>
+    <div class="mt-4">
+      <button
+        class="inline-flex items-center rounded px-3 py-1.5 text-sm font-medium bg-slate-900 text-white hover:bg-slate-700 disabled:opacity-40"
+        @click="applyTemplate"
+        :disabled="!tbTemplate"
+      >
+        Apply to global template
+      </button>
     </div>
   </div>
 
-  <div class="box mt-4">
-    <h2 class="title is-5 mb-2">Watcher status</h2>
-    <div v-if="watchPaths.length === 0" class="has-text-grey is-size-7">No watch paths configured.</div>
+  <!-- Watcher status -->
+  <div class="bg-white border border-slate-200 rounded-lg p-6 mb-4">
+    <h2 class="text-sm font-semibold text-slate-900 mb-4">Watcher status</h2>
+    <div v-if="watchPaths.length === 0" class="text-xs text-slate-500">No watch paths configured.</div>
     <div v-else>
-      <p class="is-size-7 has-text-grey mb-3">
-        The daemon polls these paths for USB card readers. Changes require a config save and daemon restart.
-      </p>
-      <table class="table is-narrow is-fullwidth is-size-7">
-        <thead><tr><th>Watch path</th><th>Status</th></tr></thead>
-        <tbody>
+      <table class="w-full">
+        <thead>
+          <tr>
+            <th class="px-4 py-2 text-left text-xs font-medium text-slate-500 uppercase tracking-wide bg-slate-50">Watch path</th>
+            <th class="px-4 py-2 text-left text-xs font-medium text-slate-500 uppercase tracking-wide bg-slate-50">Status</th>
+          </tr>
+        </thead>
+        <tbody class="divide-y divide-slate-100">
           <tr v-for="path in watchPaths" :key="path">
-            <td style="font-family: monospace">{{ path }}</td>
-            <td>
+            <td class="px-4 py-3 text-sm text-slate-700 font-mono">{{ path }}</td>
+            <td class="px-4 py-3 text-sm text-slate-700">
               <span
-                class="tag is-size-7"
-                :class="mountedPaths.has(path) ? 'is-success is-light' : 'is-light'"
-              >{{ mountedPaths.has(path) ? 'card detected' : 'watching' }}</span>
+                v-if="mountedPaths.has(path)"
+                class="rounded-full px-2 py-0.5 text-xs font-medium bg-emerald-50 text-emerald-700 ring-1 ring-inset ring-emerald-600/20"
+              >card detected</span>
+              <span
+                v-else
+                class="rounded-full px-2 py-0.5 text-xs font-medium bg-slate-100 text-slate-600"
+              >watching</span>
             </td>
           </tr>
         </tbody>
       </table>
-      <p class="help">A "card detected" path has an active mount under it right now.</p>
+      <p class="text-xs text-slate-500 mt-1">A "card detected" path has an active mount under it right now.</p>
     </div>
   </div>
 </template>
